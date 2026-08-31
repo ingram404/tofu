@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TOFU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --ink:#211E1B; --ink2:#2A2724; --line:#3A3631;
+  --wave:#000000; --wave-op:.55; --shadow:.55;
+  --lime:#A8D82C; --gold:#FFC91F; --chili:#D33B2C;
+  --paper:#F2F1EC; --mute:#94908A;
+  --bar:76px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--paper);
+  font:400 15px/1.45 Inter,-apple-system,system-ui,sans-serif;
+  padding-bottom:calc(var(--bar) + env(safe-area-inset-bottom));
+  overflow-x:hidden;
+}
+/* фирменный узор сэйгайха из печатного меню */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='36' viewBox='0 0 72 36'%3E%3Cg fill='none' stroke='%23000000' stroke-opacity='.55' stroke-width='2'%3E%3Cpath d='M0 36a18 18 0 0136 0 18 18 0 0136 0'/%3E%3Cpath d='M0 36a30 30 0 0136 0 30 30 0 0136 0'/%3E%3Cpath d='M-36 36a18 18 0 0136 0M36 36a18 18 0 0136 0'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:78px 39px;
+  opacity:1;
+}
+
+/* ── шапка ───────────────────────────── */
+header{
+  position:sticky;top:0;z-index:40;
+  background:rgba(33,30,27,.93);
+  backdrop-filter:saturate(140%) blur(12px);
+  border-bottom:1px solid var(--line);
+  padding-top:env(safe-area-inset-top);
+}
+.brand{display:flex;align-items:center;gap:10px;padding:13px 16px 10px;cursor:pointer}
+.brand .mark{height:34px;width:auto;display:block}
+.brand span{font-size:11.5px;color:var(--mute);letter-spacing:.07em}
+
+.chips{display:flex;gap:7px;overflow-x:auto;padding:0 16px 11px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;border:1px solid var(--line);background:transparent;
+  color:var(--mute);border-radius:100px;padding:7px 14px;
+  font:500 13px Inter,sans-serif;white-space:nowrap;cursor:pointer;
+  transition:background .18s,color .18s,border-color .18s;
+}
+.chip[aria-current="true"]{background:var(--lime);color:#0E0E0E;border-color:var(--lime);font-weight:600}
+@media (hover:hover) and (pointer:fine){
+  .chip:hover:not([aria-current="true"]){color:var(--paper);border-color:#55504A}
+  .add:hover{filter:brightness(1.12)}
+  .opt:hover{border-color:var(--lime);background:#302C27}
+  .bar button:hover{filter:brightness(1.08)}
+}
+
+/* ── секции ──────────────────────────── */
+section{padding:26px 16px 6px;scroll-margin-top:112px}
+.head{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.head h2{
+  margin:0;font:700 19px/1 Oswald,sans-serif;letter-spacing:.1em;
+  text-transform:uppercase;white-space:nowrap;
+}
+.head i{flex:1;height:1px;background:var(--line)}
+.head b{
+  font:500 11px Inter,sans-serif;color:var(--mute);
+  letter-spacing:.04em;font-weight:500;
+}
+
+/* ── карточка блюда ──────────────────── */
+.dish{
+  display:grid;grid-template-columns:118px 1fr;gap:13px;align-items:center;
+  padding:13px 12px;margin:0 -12px;border-bottom:1px solid var(--line);
+  border-radius:14px;position:relative;
+  transition:background .2s ease, transform .2s cubic-bezier(.3,1,.4,1);
+}
+/* лаймовая полоска слева при наведении */
+.dish::before{
+  content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;
+  background:var(--lime);border-radius:3px;
+  opacity:0;transform:scaleY(.4);transform-origin:center;
+  transition:opacity .2s, transform .2s cubic-bezier(.3,1.3,.4,1);
+}
+@media (hover:hover) and (pointer:fine){
+  .dish:hover{background:rgba(255,255,255,.04);transform:translateX(5px)}
+  .dish:hover::before{opacity:1;transform:scaleY(1)}
+  .dish:hover img{transform:scale(1.07) translateY(-3px)}
+  .dish:hover h3{color:var(--lime)}
+}
+/* касание на телефоне */
+.dish:active{background:rgba(255,255,255,.055)}
+.dish h3{transition:color .2s}
+.dish:last-child{border-bottom:0}
+/* фото «плавает» на фоне без рамки — как в печатном меню */
+.dish figure{
+  margin:0;height:92px;display:flex;align-items:center;justify-content:center;
+}
+.dish img{
+  max-width:100%;max-height:92px;object-fit:contain;display:block;
+  filter:drop-shadow(0 9px 14px rgba(0,0,0,.55));
+  transition:transform .22s cubic-bezier(.34,1.4,.5,1);
+}
+.dish.pop img{transform:scale(1.13)}
+/* фото со своим фоном — без рамки, как в печатном меню */
+.dish.framed img{filter:none}
+.dish h3{margin:0 0 3px;font:600 15.5px/1.25 Inter,sans-serif}
+.dish p{margin:0 0 8px;font-size:12.5px;color:var(--mute);line-height:1.35}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.price{font:700 18px/1 Oswald,sans-serif;color:var(--lime);letter-spacing:.02em}
+.price small{font-size:11px;color:var(--mute);font-weight:500;margin-left:3px;letter-spacing:0}
+.from{font-size:10.5px;color:var(--mute);display:block;margin-bottom:1px;letter-spacing:.03em}
+
+.add{
+  border:0;background:var(--lime);color:#0E0E0E;border-radius:9px;
+  width:34px;height:34px;font-size:21px;line-height:1;cursor:pointer;
+  display:grid;place-items:center;flex:0 0 auto;font-weight:500;
+  transition:transform .12s;
+}
+.add:active{transform:scale(.9)}
+.stepper{display:flex;align-items:center;gap:2px;background:var(--ink2);border-radius:9px;padding:2px}
+.stepper button{
+  border:0;background:transparent;color:var(--lime);width:30px;height:30px;
+  font-size:18px;cursor:pointer;border-radius:7px;
+}
+.stepper button:active{background:#252525}
+.stepper span{min-width:20px;text-align:center;font:600 14px Inter,sans-serif}
+
+/* ── нижняя панель ───────────────────── */
+.bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+  background:rgba(33,30,27,.95);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+  transform:translateY(130%);transition:transform .26s cubic-bezier(.3,1,.4,1);
+}
+.bar.on{transform:none}
+.bar button{
+  width:100%;border:0;border-radius:12px;background:var(--lime);color:#0E0E0E;
+  padding:14px 18px;font:600 15px Inter,sans-serif;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.bar b{font:700 16px Oswald,sans-serif;letter-spacing:.02em}
+
+/* ── шторка вариантов ────────────────── */
+.veil{
+  position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.veil.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:61;
+  background:#26231F;border-radius:20px 20px 0 0;
+  border-top:1px solid var(--line);
+  padding:8px 16px calc(20px + env(safe-area-inset-bottom));
+  max-height:82vh;overflow-y:auto;
+  transform:translateY(101%);transition:transform .28s cubic-bezier(.3,1,.4,1);
+}
+.sheet.on{transform:none}
+.grab{width:38px;height:4px;background:#3A3A3A;border-radius:99px;margin:6px auto 15px}
+.sheet h4{margin:0 0 3px;font:600 17px Inter,sans-serif}
+.sheet .sub{margin:0 0 17px;font-size:12.5px;color:var(--mute)}
+.grp{font:500 11px Inter,sans-serif;color:var(--mute);letter-spacing:.09em;
+     text-transform:uppercase;margin:15px 0 8px}
+.opt{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+  background:var(--ink2);border:1px solid var(--line);border-radius:11px;
+  padding:13px 15px;margin-bottom:7px;color:var(--paper);cursor:pointer;
+  font:500 14.5px Inter,sans-serif;text-align:left;
+}
+.opt:active{border-color:var(--lime)}
+.opt b{font:700 15px Oswald,sans-serif;color:var(--lime);letter-spacing:.02em}
+
+/* ── экран оформления ────────────────── */
+.screen{
+  position:fixed;inset:0;z-index:70;background:var(--ink);
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.3,1,.4,1);
+  padding-bottom:calc(96px + env(safe-area-inset-bottom));
+}
+.screen.on{transform:none}
+.scr-top{
+  position:sticky;top:0;z-index:600;display:flex;align-items:center;gap:12px;
+  padding:calc(13px + env(safe-area-inset-top)) 16px 13px;
+  background:rgba(33,30,27,.94);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.scr-top h2{margin:0;font:700 19px/1 Oswald,sans-serif;letter-spacing:.09em;text-transform:uppercase}
+.back{
+  border:0;background:transparent;color:var(--paper);font-size:23px;
+  width:32px;height:32px;cursor:pointer;border-radius:8px;line-height:1;
+}
+.back:active{background:var(--ink2)}
+.block{padding:20px 16px 4px}
+.block h3{
+  margin:0 0 12px;font:500 11px Inter,sans-serif;color:var(--mute);
+  letter-spacing:.1em;text-transform:uppercase;
+}
+
+/* строка позиции в корзине */
+.line{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.line:last-child{border-bottom:0}
+.line img{width:52px;height:52px;object-fit:contain;flex:0 0 auto}
+.line .nm{flex:1;font-size:14.5px;line-height:1.3}
+.line .pr{font:700 15px Oswald,sans-serif;color:var(--lime);white-space:nowrap}
+
+/* переключатель доставка / самовывоз */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--ink2);
+     border-radius:12px;padding:4px;border:1px solid var(--line)}
+.seg button{
+  border:0;background:transparent;color:var(--mute);border-radius:9px;
+  padding:11px;font:500 14px Inter,sans-serif;cursor:pointer;transition:.18s;
+}
+.seg button[aria-pressed="true"]{background:var(--lime);color:#0E0E0E;font-weight:600}
+
+/* точки самовывоза */
+.spot{
+  width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:var(--ink2);border:1px solid var(--line);border-radius:12px;
+  padding:14px 15px;margin-bottom:8px;color:var(--paper);cursor:pointer;text-align:left;
+}
+.spot[aria-pressed="true"]{border-color:var(--lime)}
+.spot b{display:block;font:600 15px Inter,sans-serif;margin-bottom:2px}
+.spot span{font-size:12px;color:var(--mute)}
+.spot i{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto}
+.spot[aria-pressed="true"] i{border-color:var(--lime);background:var(--lime);box-shadow:inset 0 0 0 3px var(--ink2)}
+
+/* карта */
+.mapwrap{position:relative;height:220px;border-radius:14px;overflow:hidden;
+         border:1px solid var(--line);z-index:0;isolation:isolate}
+#map{position:absolute;inset:0;background:#1A1714}
+.leaflet-tile-pane{
+  filter:invert(1) hue-rotate(180deg) brightness(.78) contrast(.92) saturate(.55);
+}
+.pin{
+  position:absolute;left:50%;top:50%;z-index:400;pointer-events:none;
+  transform:translate(-50%,-100%);font-size:30px;line-height:1;
+  filter:drop-shadow(0 3px 5px rgba(0,0,0,.6));
+}
+.geo{
+  position:absolute;right:10px;bottom:10px;z-index:401;
+  border:0;border-radius:10px;background:var(--lime);color:#0E0E0E;
+  padding:9px 13px;font:600 13px Inter,sans-serif;cursor:pointer;
+}
+.leaflet-control-attribution{
+  font-size:8px!important;background:transparent!important;
+  color:rgba(255,255,255,.28)!important;padding:0 4px!important;
+  line-height:1.6!important;
+}
+.leaflet-control-attribution a{color:rgba(255,255,255,.28)!important;text-decoration:none!important}
+
+input, textarea{
+  width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:11px;
+  padding:13px 14px;color:var(--paper);font:400 15px Inter,sans-serif;margin-bottom:8px;
+}
+input:focus, textarea:focus{outline:0;border-color:var(--lime)}
+input::placeholder, textarea::placeholder{color:#6C675F}
+textarea{resize:none;min-height:64px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.two input{margin-bottom:0}
+
+/* итог */
+.sum{padding:6px 0}
+.sum div{display:flex;justify-content:space-between;padding:7px 0;font-size:14.5px}
+.sum .mut{color:var(--mute)}
+.sum .tot{border-top:1px solid var(--line);margin-top:6px;padding-top:12px;
+          font:600 16px Inter,sans-serif}
+.sum .tot b{font:700 20px Oswald,sans-serif;color:var(--lime)}
+.warn{
+  background:rgba(211,59,44,.13);border:1px solid rgba(211,59,44,.4);
+  border-radius:11px;padding:12px 14px;font-size:13.5px;color:#F0A79E;margin-top:10px;
+}
+#bar2{z-index:80}
+html[data-theme="light"]{
+  --ink:#F5F1E8; --ink2:#FFFFFF; --line:#E2DACB;
+  --lime:#6E9412; --paper:#231F1A; --mute:#7C7468;
+  --wave:#8A7F6C; --wave-op:.16; --shadow:.16;
+}
+html[data-theme="light"] body::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='36' viewBox='0 0 72 36'%3E%3Cg fill='none' stroke='%238A7F6C' stroke-opacity='.22' stroke-width='2'%3E%3Cpath d='M0 36a18 18 0 0136 0 18 18 0 0136 0'/%3E%3Cpath d='M0 36a30 30 0 0136 0 30 30 0 0136 0'/%3E%3Cpath d='M-36 36a18 18 0 0136 0M36 36a18 18 0 0136 0'/%3E%3C/g%3E%3C/svg%3E")}
+html[data-theme="light"] header{background:rgba(245,241,232,.93)}
+html[data-theme="light"] .bar{background:rgba(245,241,232,.96)}
+html[data-theme="light"] .scr-top{background:rgba(245,241,232,.95)}
+html[data-theme="light"] .sheet{background:#FFFDF8}
+html[data-theme="light"] .add,
+html[data-theme="light"] .bar button,
+html[data-theme="light"] .seg button[aria-pressed="true"],
+html[data-theme="light"] .chip[aria-current="true"]{color:#FFFFFF}
+html[data-theme="light"] .leaflet-tile-pane{filter:none}
+html[data-theme="light"] .leaflet-control-attribution,
+html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!important}
+
+/* ── стартовый экран ─────────────────── */
+.home{
+  position:fixed;inset:0;z-index:90;background:var(--ink);
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 24px);
+  transition:transform .3s cubic-bezier(.3,1,.4,1);
+}
+.home.off{transform:translateY(-100%)}
+.hero{padding:26px 0 20px;text-align:center}
+.hero .logo{width:min(58vw,230px);height:auto;display:block;margin:0 auto}
+.hero p{margin:6px 0 0;font-size:13px;color:var(--mute);letter-spacing:.05em}
+
+.who{
+  display:flex;align-items:center;gap:13px;background:var(--ink2);
+  border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:9px;
+}
+.ava{
+  width:46px;height:46px;border-radius:50%;background:var(--lime);color:#0E0E0E;
+  display:grid;place-items:center;font:700 19px Oswald,sans-serif;flex:0 0 auto;
+}
+.who b{display:block;font:600 16px Inter,sans-serif;margin-bottom:2px}
+.who span{font-size:12.5px;color:var(--mute)}
+
+.tile{
+  width:100%;display:flex;align-items:center;gap:13px;background:var(--ink2);
+  border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-bottom:8px;
+  color:var(--paper);cursor:pointer;font:500 15px Inter,sans-serif;text-align:left;
+}
+.tile em{font-style:normal;font-size:19px;width:24px;text-align:center;flex:0 0 auto}
+.tile span{flex:1}
+.tile i{font-style:normal;font-size:13px;color:var(--mute)}
+.tile:active{border-color:var(--lime)}
+@media (hover:hover) and (pointer:fine){ .tile:hover{border-color:var(--lime)} }
+
+.go{
+  width:100%;border:0;border-radius:14px;background:var(--lime);color:#0E0E0E;
+  padding:17px;font:700 17px Oswald,sans-serif;letter-spacing:.08em;text-transform:uppercase;
+  cursor:pointer;margin:16px 0 8px;
+}
+.gap{height:14px}
+.hint{font-size:11.5px;color:var(--mute);text-align:center;padding:6px 0 0;line-height:1.5}
+
+.stars{display:flex;gap:6px;justify-content:center;margin:4px 0 16px}
+.stars button{border:0;background:transparent;font-size:31px;cursor:pointer;
+              filter:grayscale(1) opacity(.35);transition:.15s;padding:0}
+.stars button.on{filter:none}
+
+.foot{padding:26px 16px 8px;text-align:center;color:#5E5E58;font-size:11px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand" onclick="toHome()"><img class="mark" id="mLogo" src="logo-dark.png" alt="TOFU"><span id="mSub">корейско-японская кухня</span></div>
+  <nav class="chips" id="chips"></nav>
+</header>
+
+<div class="home" id="home">
+  <div class="hero">
+    <img class="logo" id="hLogo" src="logo-dark.png" alt="TOFU" width="230" height="200">
+    <p id="hSub">корейско-японская кухня</p>
+  </div>
+
+  <div class="who">
+    <div class="ava" id="hAva">?</div>
+    <div>
+      <b id="hName">Гость</b>
+      <span id="hMeta">Телефон не указан</span>
+    </div>
+  </div>
+
+  <button class="go" id="hGo" onclick="toMenu()">Открыть меню</button>
+
+  <div class="gap"></div>
+
+  <button class="tile" onclick="soon('promo')">
+    <em>🔥</em><span id="tPromo">Акции</span><i id="iPromo">скоро</i>
+  </button>
+  <button class="tile" onclick="soon('code')">
+    <em>🎟</em><span id="tCode">Промокоды</span><i id="iCode">скоро</i>
+  </button>
+  <button class="tile" onclick="soon('orders')">
+    <em>📦</em><span id="tOrders">Мои заказы</span><i id="iOrders">скоро</i>
+  </button>
+
+  <div class="gap"></div>
+
+  <button class="tile" onclick="switchLang()">
+    <em>🌐</em><span id="tLang">Язык</span><i id="iLang">Русский</i>
+  </button>
+  <button class="tile" onclick="switchTheme()">
+    <em id="tThemeIcon">🌙</em><span id="tTheme">Тема</span><i id="iTheme">Тёмная</i>
+  </button>
+  <button class="tile" onclick="openReview()">
+    <em>💬</em><span id="tReview">Оставить отзыв</span><i>›</i>
+  </button>
+
+  <p class="hint" id="hHint">Профиль, акции и история заказов появятся после подключения сервера</p>
+</div>
+
+<main id="menu"></main>
+<p class="foot">Внешний вид блюда может отличаться от изображения</p>
+
+<div class="bar" id="bar">
+  <button onclick="openCart()">
+    <span id="barCount">Корзина</span><b id="barSum">0 сум</b>
+  </button>
+</div>
+
+<div class="screen" id="screen">
+  <div class="scr-top">
+    <button class="back" onclick="closeCart()" aria-label="Назад">←</button>
+    <h2 data-i="order">Заказ</h2>
+  </div>
+
+  <div class="block">
+    <h3 data-i="yours">Ваш заказ</h3>
+    <div id="lines"></div>
+  </div>
+
+  <div class="block">
+    <h3 data-i="howGet">Как получить</h3>
+    <div class="seg">
+      <button id="mDeliv" aria-pressed="true"  onclick="setMode('delivery')" data-i="deliv">Доставка</button>
+      <button id="mPick"  aria-pressed="false" onclick="setMode('pickup')" data-i="pick">Самовывоз</button>
+    </div>
+  </div>
+
+  <div class="block" id="pickBlock" hidden>
+    <h3 data-i="whereFrom">Откуда забрать</h3>
+    <button class="spot" aria-pressed="true" onclick="setSpot(0)">
+      <span><b>ТРЦ Compass</b><span>Ташкентская кольцевая, 17 · до 22:00</span></span><i></i>
+    </button>
+    <button class="spot" aria-pressed="false" onclick="setSpot(1)">
+      <span><b>ТРЦ Riviera</b><span>Нурафшон, 5 · до 22:00, пт–сб до 23:00</span></span><i></i>
+    </button>
+  </div>
+
+  <div class="block" id="delivBlock">
+    <h3 data-i="whereTo">Куда доставить</h3>
+    <div class="mapwrap">
+      <div id="map"></div>
+      <div class="pin">📍</div>
+      <button class="geo" onclick="locateMe()" data-i="geo">Моё местоположение</button>
+    </div>
+    <input id="addr" placeholder="Улица и дом" style="margin-top:10px">
+    <div class="two">
+      <input id="apt" placeholder="Квартира">
+      <input id="entr" placeholder="Подъезд">
+    </div>
+    <textarea id="note" placeholder="Комментарий курьеру" style="margin-top:8px"></textarea>
+  </div>
+
+  <div class="block">
+    <h3 data-i="pay">Оплата</h3>
+    <button class="spot" aria-pressed="true" onclick="setPay('cash')" id="pCash">
+      <span><b data-i="cash">Наличными</b><span data-i="toCourier">Курьеру при получении</span></span><i></i>
+    </button>
+    <button class="spot" aria-pressed="false" onclick="setPay('card')" id="pCard">
+      <span><b data-i="card">Картой</b><span data-i="toCourier">Курьеру при получении</span></span><i></i>
+    </button>
+  </div>
+
+  <div class="block">
+    <div class="sum" id="sum"></div>
+    <div class="warn" id="warn" hidden></div>
+  </div>
+</div>
+
+<div class="bar" id="bar2">
+  <button onclick="submitOrder()" id="submitBtn">
+    <span data-i="submit">Оформить заказ</span><b id="sumTotal">0 сум</b>
+  </button>
+</div>
+
+<div class="sheet" id="rev">
+  <div class="grab"></div>
+  <h4 id="rvTitle">Оставить отзыв</h4>
+  <p class="sub" id="rvSub">Оцените и напишите пару слов — нам это помогает</p>
+  <div class="stars" id="rvStars"></div>
+  <textarea id="rvText" placeholder="Что понравилось, что нет"></textarea>
+  <button class="go" onclick="sendReview()" id="rvSend">Отправить</button>
+</div>
+
+<div class="veil" id="veil" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <h4 id="shName"></h4>
+  <p class="sub" id="shDesc"></p>
+  <div id="shOpts"></div>
+</div>
+
+<script src="framed.js"></script>
+<script src="menu.js"></script>
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready(); tg?.expand();
+
+const SUPPORT = 'tofu_uz_bot';        // куда уходит отзыв — заменить на аккаунт поддержки
+
+/* ══════════ язык и тема ══════════ */
+const T = {
+  ru:{ sub:'корейско-японская кухня', go:'Открыть меню', guest:'Гость',
+       nophone:'Телефон не указан', promo:'Акции', code:'Промокоды',
+       orders:'Мои заказы', soon:'скоро', lang:'Язык', langName:'Русский',
+       theme:'Тема', dark:'Тёмная', light:'Светлая', review:'Оставить отзыв',
+       hint:'Профиль, акции и история заказов появятся после подключения сервера',
+       cart:'Корзина', empty:'Корзина пуста', order:'Заказ', yours:'Ваш заказ',
+       howGet:'Как получить', deliv:'Доставка', pick:'Самовывоз',
+       whereFrom:'Откуда забрать', whereTo:'Куда доставить', pay:'Оплата',
+       cash:'Наличными', card:'Картой', toCourier:'Курьеру при получении',
+       street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
+       geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении',
+       free:'бесплатно', total:'Итого', submit:'Оформить заказ', sum:'сум',
+       from:'от', min:n=>`Минимальная сумма заказа — ${n} сум`,
+       rvTitle:'Оставить отзыв', rvSub:'Оцените и напишите пару слов — нам это помогает',
+       rvPh:'Что понравилось, что нет', rvSend:'Отправить',
+       pos:n=>n+' '+(n%10===1&&n%100!==11?'позиция':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'позиции':'позиций')),
+       disclaimer:'Внешний вид блюда может отличаться от изображения' },
+  uz:{ sub:'koreys-yapon oshxonasi', go:'Menyuni ochish', guest:'Mehmon',
+       nophone:'Telefon ko\'rsatilmagan', promo:'Aksiyalar', code:'Promokodlar',
+       orders:'Mening buyurtmalarim', soon:'tez orada', lang:'Til', langName:'O\'zbekcha',
+       theme:'Mavzu', dark:'Qorong\'i', light:'Yorug\'', review:'Fikr qoldirish',
+       hint:'Profil, aksiyalar va buyurtmalar tarixi server ulangach paydo bo\'ladi',
+       cart:'Savat', empty:'Savat bo\'sh', order:'Buyurtma', yours:'Sizning buyurtmangiz',
+       howGet:'Qanday olish', deliv:'Yetkazib berish', pick:'O\'zi olib ketish',
+       whereFrom:'Qayerdan olish', whereTo:'Qayerga yetkazish', pay:'To\'lov',
+       cash:'Naqd pul', card:'Karta', toCourier:'Kuryerga olganda',
+       street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
+       geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi',
+       free:'bepul', total:'Jami', submit:'Buyurtma berish', sum:'so\'m',
+       from:'dan', min:n=>`Minimal buyurtma summasi — ${n} so'm`,
+       rvTitle:'Fikr qoldirish', rvSub:'Baholang va bir necha so\'z yozing',
+       rvPh:'Nima yoqdi, nima yoqmadi', rvSend:'Yuborish',
+       pos:n=>n+' ta',
+       disclaimer:'Taom ko\'rinishi rasmdan farq qilishi mumkin' },
+  en:{ sub:'Korean & Japanese kitchen', go:'Open menu', guest:'Guest',
+       nophone:'Phone not set', promo:'Offers', code:'Promo codes',
+       orders:'My orders', soon:'soon', lang:'Language', langName:'English',
+       theme:'Theme', dark:'Dark', light:'Light', review:'Leave a review',
+       hint:'Profile, offers and order history will appear once the server is connected',
+       cart:'Cart', empty:'Cart is empty', order:'Order', yours:'Your order',
+       howGet:'How to get it', deliv:'Delivery', pick:'Pickup',
+       whereFrom:'Pickup point', whereTo:'Delivery address', pay:'Payment',
+       cash:'Cash', card:'Card', toCourier:'To the courier on delivery',
+       street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
+       geo:'My location', goods:'Dishes', delivCost:'calculated at checkout',
+       free:'free', total:'Total', submit:'Place order', sum:'UZS',
+       from:'from', min:n=>`Minimum order is ${n} UZS`,
+       rvTitle:'Leave a review', rvSub:'Rate us and write a few words',
+       rvPh:'What you liked, what you did not', rvSend:'Send',
+       pos:n=>n+(n===1?' item':' items'),
+       disclaimer:'Actual dish may differ from the photo' },
+};
+
+const store = {
+  get(k, d){ try { return localStorage.getItem(k) ?? d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch(e){} },
+};
+let lang  = store.get('lang', 'ru');
+let theme = store.get('theme', 'dark');
+const t = () => T[lang];
+
+document.documentElement.dataset.theme = theme;
+
+const cart = {};                       // key -> {name, price, qty}
+const money = n => n.toLocaleString('ru-RU').replace(/,/g,' ');
+
+/* ---------- отрисовка меню ---------- */
+const menuEl = document.getElementById('menu');
+const chipsEl = document.getElementById('chips');
+
+const lat = () => lang !== 'ru';
+function catName(c){ return lat() ? (MENU.cats_uz[c]||c) : c; }
+function nm(it){ return lat() ? it.name_uz : it.name; }
+function ds(it){ return lat() ? it.desc_uz : it.desc; }
+function vl(v){ return lat() ? v.label_uz : v.label; }
+
+MENU.order.forEach((cat, ci) => {
+  const list = MENU.items.filter(i => i.cat === cat);
+  if (!list.length) return;
+
+  const chip = document.createElement('button');
+  chip.className = 'chip';
+  chip.textContent = catName(cat);
+  chip.dataset.cat = cat;
+  chip.setAttribute('aria-current', ci === 0);
+  chip.onclick = () => document.getElementById('c'+ci)
+        .scrollIntoView({behavior:'smooth', block:'start'});
+  chipsEl.append(chip);
+
+  const sec = document.createElement('section');
+  sec.id = 'c'+ci;
+  sec.innerHTML = `<div class="head"><h2>${catName(cat)}</h2><i></i><b>${list.length}</b></div>`;
+
+  list.forEach(it => {
+    const hasVar = it.variants.length > 0;
+    const prices = hasVar ? it.variants.map(v => v.price) : [it.price];
+    const base = Math.min(...prices);
+    const spread = Math.max(...prices) !== base;   // «от» — только если цены разные
+    const d = document.createElement('article');
+    d.className = FRAMED.includes(it.id) ? 'dish framed' : 'dish';
+    d.dataset.id = it.id;
+    d.innerHTML = `
+      <figure><img src="img/${it.id}.webp" alt="" width="118" height="92"
+        loading="lazy" decoding="async" fetchpriority="low"></figure>
+      <div>
+        <h3>${nm(it)}</h3>
+        ${ds(it) ? `<p>${ds(it)}</p>` : ''}
+        <div class="row">
+          <div>
+            ${spread ? `<span class="from">${t().from}</span>` : ''}
+            <span class="price">${money(base)}<small>${t().sum}</small></span>
+          </div>
+          <div class="ctl"></div>
+        </div>
+      </div>`;
+    d.querySelector('.ctl').append(control(it));
+    sec.append(d);
+  });
+  menuEl.append(sec);
+});
+
+/* ---------- кнопка / счётчик ---------- */
+function control(it){
+  const key = 'i'+it.id;
+  const n = cart[key]?.qty || 0;
+
+  if (it.variants.length){
+    const b = document.createElement('button');
+    b.className = 'add'; b.textContent = '+';
+    b.setAttribute('aria-label', nm(it));
+    b.onclick = () => openSheet(it);
+    return b;
+  }
+  if (!n){
+    const b = document.createElement('button');
+    b.className = 'add'; b.textContent = '+';
+    b.setAttribute('aria-label', nm(it));
+    b.onclick = () => { bump(key, nm(it), it.price, 1, it.id); pop(it.id); };
+    return b;
+  }
+  const w = document.createElement('div');
+  w.className = 'stepper';
+  w.innerHTML = `<button aria-label="Убрать">−</button><span>${n}</span><button aria-label="Добавить">+</button>`;
+  w.children[0].onclick = () => bump(key, nm(it), it.price, -1, it.id);
+  w.children[2].onclick = () => { bump(key, nm(it), it.price, 1, it.id); pop(it.id); };
+  return w;
+}
+
+function pop(id){
+  const d = menuEl.querySelector(`.dish[data-id="${id}"]`);
+  if (!d) return;
+  d.classList.add('pop');
+  setTimeout(() => d.classList.remove('pop'), 230);
+}
+
+function bump(key, name, price, delta, img){
+  const c = cart[key] || (cart[key] = {name, price, qty:0, img});
+  c.qty += delta;
+  if (c.qty <= 0) delete cart[key];
+  redraw(); paintBar();
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+
+function redraw(){
+  MENU.items.forEach(it => {
+    const d = menuEl.querySelector(`.dish[data-id="${it.id}"] .ctl`);
+    if (d){ d.replaceChildren(control(it)); }
+  });
+}
+
+/* ---------- шторка вариантов ---------- */
+let current = null;
+function openSheet(it){
+  current = it;
+  document.getElementById('shName').textContent = nm(it);
+  document.getElementById('shDesc').textContent = ds(it) || '';
+  const box = document.getElementById('shOpts');
+  box.replaceChildren();
+
+  const groups = {};
+  it.variants.forEach(v => (groups[v.filling || ''] ??= []).push(v));
+
+  Object.entries(groups).forEach(([g, vs]) => {
+    if (g){
+      const h = document.createElement('div');
+      h.className = 'grp'; h.textContent = g;
+      box.append(h);
+    }
+    vs.forEach(v => {
+      const b = document.createElement('button');
+      b.className = 'opt';
+      b.innerHTML = `<span>${v.qty || vl(v)}</span><b>${money(v.price)} ${t().sum}</b>`;
+      b.onclick = () => {
+        bump('v'+v.id, `${nm(it)} (${vl(v)})`, v.price, 1, it.id);
+        pop(it.id); closeSheet();
+      };
+      box.append(b);
+    });
+  });
+
+  document.getElementById('veil').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+}
+function closeSheet(){
+  document.getElementById('veil').classList.remove('on');
+  document.getElementById('sheet').classList.remove('on');
+  document.getElementById('rev').classList.remove('on');
+}
+
+/* ---------- нижняя панель ---------- */
+function paintBar(){
+  const list = Object.values(cart);
+  const n = list.reduce((s,c) => s + c.qty, 0);
+  const sum = list.reduce((s,c) => s + c.qty * c.price, 0);
+  document.getElementById('bar').classList.toggle('on', n > 0);
+  document.getElementById('barCount').textContent = t().pos(n);
+  document.getElementById('barSum').textContent = money(sum) + ' ' + t().sum;
+}
+
+/* ══════════ экран оформления ══════════ */
+const MIN_ORDER = 50000;
+const SPOTS = [
+  {name:"ТРЦ Compass", lat:41.2390226, lng:69.3286662},
+  {name:"ТРЦ Riviera", lat:41.3395167, lng:69.2547119},
+];
+let mode = 'delivery', spot = 0, pay = 'cash', map = null, coords = null;
+
+function openCart(){
+  if (!Object.keys(cart).length) return;
+  renderLines(); paintSum();
+  document.getElementById('screen').classList.add('on');
+  document.getElementById('bar').classList.remove('on');
+  document.getElementById('bar2').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  if (mode === 'delivery') setTimeout(initMap, 320);
+  tg?.BackButton?.show();
+}
+function closeCart(){
+  document.getElementById('screen').classList.remove('on');
+  document.getElementById('bar2').classList.remove('on');
+  document.body.style.overflow = '';
+  paintBar();
+  tg?.BackButton?.hide();
+}
+tg?.BackButton?.onClick(() => {
+  if (document.getElementById('screen').classList.contains('on')) closeCart();
+  else toHome();
+});
+document.getElementById('addr').addEventListener('input', () => { addrTyped = true; });
+
+function renderLines(){
+  const box = document.getElementById('lines');
+  box.replaceChildren();
+  Object.entries(cart).forEach(([key, c]) => {
+    const row = document.createElement('div');
+    row.className = 'line';
+    row.innerHTML = `
+      <img src="img/${c.img}.webp" alt="">
+      <span class="nm">${c.name}</span>
+      <span class="stepper">
+        <button aria-label="Убрать">−</button><span>${c.qty}</span><button aria-label="Добавить">+</button>
+      </span>
+      <span class="pr">${money(c.qty * c.price)}</span>`;
+    const st = row.querySelector('.stepper');
+    st.children[0].onclick = () => step(key, -1);
+    st.children[2].onclick = () => step(key, +1);
+    box.append(row);
+  });
+}
+function step(key, d){
+  const c = cart[key];
+  if (!c) return;
+  c.qty += d;
+  if (c.qty <= 0) delete cart[key];
+  redraw();
+  if (!Object.keys(cart).length){ closeCart(); return; }
+  renderLines(); paintSum();
+}
+
+function setMode(m){
+  mode = m;
+  document.getElementById('mDeliv').setAttribute('aria-pressed', m === 'delivery');
+  document.getElementById('mPick').setAttribute('aria-pressed', m === 'pickup');
+  document.getElementById('delivBlock').hidden = m !== 'delivery';
+  document.getElementById('pickBlock').hidden  = m !== 'pickup';
+  if (m === 'delivery') setTimeout(initMap, 60);
+  paintSum();
+}
+function setSpot(i){
+  spot = i;
+  document.querySelectorAll('#pickBlock .spot')
+    .forEach((b, k) => b.setAttribute('aria-pressed', k === i));
+}
+function setPay(p){
+  pay = p;
+  document.getElementById('pCash').setAttribute('aria-pressed', p === 'cash');
+  document.getElementById('pCard').setAttribute('aria-pressed', p === 'card');
+}
+
+/* ---- карта ---- */
+function initMap(){
+  if (map || !window.L) return;
+  map = L.map('map', {zoomControl:false, attributionControl:true})
+         .setView([41.3111, 69.2797], 12);            // центр Ташкента
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:19
+  }).addTo(map);
+  map.on('moveend', () => { coords = map.getCenter(); askAddress(); });
+  coords = map.getCenter();
+}
+let addrTimer = null, addrTyped = false;
+
+/* координаты -> адрес, бесплатно через OpenStreetMap */
+function askAddress(){
+  if (addrTyped || !coords) return;
+  clearTimeout(addrTimer);
+  addrTimer = setTimeout(async () => {
+    const f = document.getElementById('addr');
+    f.placeholder = 'Определяем адрес…';
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/reverse'
+        + `?format=jsonv2&lat=${coords.lat}&lon=${coords.lng}&accept-language=ru&zoom=18`);
+      const a = (await r.json()).address || {};
+      const street = a.road || a.pedestrian || a.neighbourhood || a.suburb || '';
+      const house  = a.house_number || '';
+      const txt = [street, house].filter(Boolean).join(', ');
+      if (txt && !addrTyped) f.value = txt;
+    } catch(e){ /* сеть недоступна — клиент впишет сам */ }
+    f.placeholder = 'Улица и дом';
+  }, 700);
+}
+
+function locateMe(){
+  const put = (lat, lng) => { initMap(); map.setView([lat, lng], 17); coords = {lat, lng}; };
+
+  // внутри Telegram? скрипт грузится и в обычном браузере, но platform там 'unknown'
+  const inTelegram = tg && tg.platform && tg.platform !== 'unknown';
+  const lm = inTelegram ? tg.LocationManager : null;
+
+  if (!lm){ browserGeo(put); return; }
+
+  let answered = false;
+  const fallback = setTimeout(() => {          // Telegram молчит — идём в браузер
+    if (!answered){ answered = true; browserGeo(put); }
+  }, 3000);
+
+  try {
+    lm.init(() => lm.getLocation(loc => {
+      if (answered) return;
+      answered = true; clearTimeout(fallback);
+      if (loc) put(loc.latitude, loc.longitude);
+      else alert('Доступ к местоположению не разрешён. Подвиньте карту вручную — метка всегда в центре.');
+    }));
+  } catch(e){
+    if (!answered){ answered = true; clearTimeout(fallback); browserGeo(put); }
+  }
+}
+
+function browserGeo(put){
+  const insecure = location.protocol === 'file:';
+  if (insecure){
+    alert('Геолокация не работает при открытии файла напрямую.\n\n'
+        + 'Это ограничение браузера, а не ошибка приложения — в Telegram всё заработает.\n\n'
+        + 'Пока подвиньте карту вручную: метка всегда в центре.');
+    return;
+  }
+  if (!navigator.geolocation){
+    alert('Браузер не поддерживает геолокацию. Подвиньте карту вручную.');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    p => put(p.coords.latitude, p.coords.longitude),
+    err => {
+      const msg = err.code === 1
+        ? 'Доступ к местоположению запрещён. Разрешите его в настройках браузера или подвиньте карту вручную.'
+        : 'Не удалось определить местоположение. Подвиньте карту вручную — метка всегда в центре.';
+      alert(msg);
+    },
+    {enableHighAccuracy:true, timeout:8000}
+  );
+}
+
+/* ---- стоимость доставки ----
+   Одно место, где считается доставка. Позже сюда встанет
+   запрос к Яндекс Доставке, остальной код не меняется.        */
+function deliveryFee(){
+  if (mode === 'pickup') return 0;
+  return null;                    // null = «рассчитается при оформлении»
+}
+
+function paintSum(){
+  const list = Object.values(cart);
+  const goods = list.reduce((s,c) => s + c.qty * c.price, 0);
+  const fee = deliveryFee();
+
+  const rows = [`<div><span class="mut">${t().goods}</span><span>${money(goods)} ${t().sum}</span></div>`];
+  if (mode === 'delivery')
+    rows.push(`<div><span class="mut">${t().deliv}</span><span class="mut">${t().delivCost}</span></div>`);
+  else
+    rows.push(`<div><span class="mut">${t().pick}</span><span>${t().free}</span></div>`);
+  rows.push(`<div class="tot"><span>${t().total}</span><b>${money(goods + (fee||0))} ${t().sum}</b></div>`);
+  document.getElementById('sum').innerHTML = rows.join('');
+  document.getElementById('sumTotal').textContent = money(goods + (fee||0)) + ' ' + t().sum;
+
+  const short = goods < MIN_ORDER;
+  const w = document.getElementById('warn');
+  w.hidden = !short;
+  if (short) w.textContent = t().min(money(MIN_ORDER));
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = short;
+  btn.style.opacity = short ? .45 : 1;
+}
+
+function submitOrder(){
+  const goods = Object.values(cart).reduce((s,c) => s + c.qty * c.price, 0);
+  if (goods < MIN_ORDER) return;
+
+  if (mode === 'delivery' && !coords && !document.getElementById('addr').value.trim()){
+    alert('Укажите точку на карте или впишите улицу и дом');
+    document.getElementById('addr').focus(); return;
+  }
+
+  const order = {
+    items: Object.values(cart).map(c => ({name:c.name, qty:c.qty, price:c.price})),
+    goods, mode, pay,
+    spot:    mode === 'pickup'   ? SPOTS[spot].name : null,
+    address: mode === 'delivery' ? {
+      street: document.getElementById('addr').value.trim(),
+      apt:    document.getElementById('apt').value.trim(),
+      entr:   document.getElementById('entr').value.trim(),
+      note:   document.getElementById('note').value.trim(),
+      lat: coords?.lat, lng: coords?.lng,
+    } : null,
+  };
+  console.log('ЗАКАЗ', order);
+  alert('Прототип: заказ собран, но пока никуда не уходит.\n\n'
+      + JSON.stringify(order, null, 1));
+}
+
+/* ══════════ стартовый экран ══════════ */
+const $ = id => document.getElementById(id);
+
+function paintHome(){
+  const u = tg?.initDataUnsafe?.user;
+  const name = u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : t().guest;
+  $('hName').textContent = name;
+  $('hAva').textContent  = (name[0] || '?').toUpperCase();
+  $('hMeta').textContent = t().nophone;
+  $('hSub').textContent  = t().sub;
+  $('mSub').textContent  = t().sub;
+  $('hGo').textContent   = t().go;
+  $('tPromo').textContent  = t().promo;   $('iPromo').textContent  = t().soon;
+  $('tCode').textContent   = t().code;    $('iCode').textContent   = t().soon;
+  $('tOrders').textContent = t().orders;  $('iOrders').textContent = t().soon;
+  $('tLang').textContent   = t().lang;    $('iLang').textContent   = t().langName;
+  $('tTheme').textContent  = t().theme;
+  $('iTheme').textContent  = theme === 'dark' ? t().dark : t().light;
+  $('tThemeIcon').textContent = theme === 'dark' ? '🌙' : '☀️';
+  const logo = theme === 'dark' ? 'logo-dark.png' : 'logo-light.png';
+  $('hLogo').src = logo; $('mLogo').src = logo;
+  $('tReview').textContent = t().review;
+  $('hHint').textContent   = t().hint;
+  $('rvTitle').textContent = t().rvTitle;
+  $('rvSub').textContent   = t().rvSub;
+  $('rvText').placeholder  = t().rvPh;
+  $('rvSend').textContent  = t().rvSend;
+  document.querySelector('.foot').textContent = t().disclaimer;
+}
+
+function toMenu(){
+  $('home').classList.add('off');
+  document.body.style.overflow = '';
+  tg?.BackButton?.show();
+  paintBar();
+}
+function toHome(){
+  $('home').classList.remove('off');
+  document.body.style.overflow = 'hidden';
+  $('bar').classList.remove('on');
+  tg?.BackButton?.hide();
+}
+
+const LANGS = ['ru','uz','en'];
+function switchLang(){
+  lang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
+  store.set('lang', lang);
+  location.reload();                 // перерисовываем меню целиком
+}
+function switchTheme(){
+  theme = theme === 'dark' ? 'light' : 'dark';
+  store.set('theme', theme);
+  document.documentElement.dataset.theme = theme;
+  paintHome();
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+function soon(){
+  tg?.HapticFeedback?.notificationOccurred('warning');
+  alert(t().soon.charAt(0).toUpperCase() + t().soon.slice(1));
+}
+
+/* ---- отзыв ---- */
+let stars = 0;
+function openReview(){
+  const box = $('rvStars');
+  box.replaceChildren();
+  for (let i = 1; i <= 5; i++){
+    const b = document.createElement('button');
+    b.textContent = '⭐'; b.className = i <= stars ? 'on' : '';
+    b.onclick = () => { stars = i; openReview(); };
+    box.append(b);
+  }
+  $('veil').classList.add('on');
+  $('rev').classList.add('on');
+}
+function sendReview(){
+  const txt = $('rvText').value.trim();
+  if (!stars && !txt) return;
+  const msg = `Отзыв TOFU: ${'⭐'.repeat(stars)}\n${txt}`;
+  closeSheet();
+  $('rvText').value = ''; stars = 0;
+  if (tg?.openTelegramLink)
+    tg.openTelegramLink(`https://t.me/${SUPPORT}?text=${encodeURIComponent(msg)}`);
+  else
+    window.open(`https://t.me/${SUPPORT}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function paintStatic(){
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const v = t()[el.dataset.i];
+    if (typeof v === 'string') el.textContent = v;
+  });
+  $('addr').placeholder = t().street;
+  $('apt').placeholder  = t().apt;
+  $('entr').placeholder = t().entr;
+  $('note').placeholder = t().note;
+}
+
+paintHome(); paintStatic();
+document.body.style.overflow = 'hidden';   // стартовый экран открыт
+
+/* подсветка активной категории при скролле */
+const io = new IntersectionObserver(es => {
+  es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const i = +e.target.id.slice(1);
+    [...chipsEl.children].forEach((c,k) => c.setAttribute('aria-current', k===i));
+    chipsEl.children[i]?.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  });
+}, {rootMargin:'-115px 0px -72% 0px'});
+document.querySelectorAll('section').forEach(s => io.observe(s));
+</script>
+</body>
+</html>
