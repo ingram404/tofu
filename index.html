@@ -839,6 +839,24 @@ function askAddress(){
   }, 700);
 }
 
+let geoHintShown = false;
+function geoToast(text){
+  if (geoHintShown) return;      // показываем подсказку только один раз
+  geoHintShown = true;
+  let el = document.getElementById('geoToast');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'geoToast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);'
+      + 'background:rgba(20,20,20,.95);color:#fff;padding:12px 16px;border-radius:12px;'
+      + 'font-size:14px;max-width:82%;text-align:center;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.transition='opacity .5s'; el.style.opacity='0'; }, 3500);
+}
+
 function locateMe(){
   const put = (lat, lng) => { initMap(); map.setView([lat, lng], 17); coords = {lat, lng}; };
 
@@ -858,7 +876,7 @@ function locateMe(){
       if (answered) return;
       answered = true; clearTimeout(fallback);
       if (loc) put(loc.latitude, loc.longitude);
-      else alert('Доступ к местоположению не разрешён. Подвиньте карту вручную — метка всегда в центре.');
+      else geoToast('Не удалось определить местоположение. Двигайте карту — метка в центре.');
     }));
   } catch(e){
     if (!answered){ answered = true; clearTimeout(fallback); browserGeo(put); }
@@ -868,22 +886,20 @@ function locateMe(){
 function browserGeo(put){
   const insecure = location.protocol === 'file:';
   if (insecure){
-    alert('Геолокация не работает при открытии файла напрямую.\n\n'
-        + 'Это ограничение браузера, а не ошибка приложения — в Telegram всё заработает.\n\n'
-        + 'Пока подвиньте карту вручную: метка всегда в центре.');
+    geoToast('Геолокация недоступна здесь. Двигайте карту — метка в центре.');
     return;
   }
   if (!navigator.geolocation){
-    alert('Браузер не поддерживает геолокацию. Подвиньте карту вручную.');
+    geoToast('Геолокация не поддерживается. Двигайте карту — метка в центре.');
     return;
   }
   navigator.geolocation.getCurrentPosition(
     p => put(p.coords.latitude, p.coords.longitude),
     err => {
       const msg = err.code === 1
-        ? 'Доступ к местоположению запрещён. Разрешите его в настройках браузера или подвиньте карту вручную.'
-        : 'Не удалось определить местоположение. Подвиньте карту вручную — метка всегда в центре.';
-      alert(msg);
+        ? 'Доступ к геолокации закрыт. Двигайте карту — метка в центре.'
+        : 'Не удалось определить местоположение. Двигайте карту — метка в центре.';
+      geoToast(msg);
     },
     {enableHighAccuracy:true, timeout:8000}
   );
