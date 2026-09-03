@@ -496,6 +496,7 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
 const tg = window.Telegram?.WebApp;
 tg?.ready(); tg?.expand();
 
+const API = 'https://tofu-server-zq6z.onrender.com';   // адрес сервера
 const SUPPORT = 'tofu_uz_bot';        // куда уходит отзыв — заменить на аккаунт поддержки
 
 /* ══════════ язык и тема ══════════ */
@@ -516,7 +517,9 @@ const T = {
        rvTitle:'Оставить отзыв', rvSub:'Оцените и напишите пару слов — нам это помогает',
        rvPh:'Что понравилось, что нет', rvSend:'Отправить',
        pos:n=>n+' '+(n%10===1&&n%100!==11?'позиция':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'позиции':'позиций')),
-       disclaimer:'Внешний вид блюда может отличаться от изображения' },
+       disclaimer:'Внешний вид блюда может отличаться от изображения',
+       done:n=>`Заказ №${n} принят!\n\nМы свяжемся с вами для подтверждения.`,
+       failed:'Не удалось отправить заказ. Проверьте связь и попробуйте ещё раз.' },
   uz:{ sub:'koreys-yapon oshxonasi', go:'Menyuni ochish', guest:'Mehmon',
        nophone:'Telefon ko\'rsatilmagan', promo:'Aksiyalar', code:'Promokodlar',
        orders:'Mening buyurtmalarim', soon:'tez orada', lang:'Til', langName:'O\'zbekcha',
@@ -533,7 +536,9 @@ const T = {
        rvTitle:'Fikr qoldirish', rvSub:'Baholang va bir necha so\'z yozing',
        rvPh:'Nima yoqdi, nima yoqmadi', rvSend:'Yuborish',
        pos:n=>n+' ta',
-       disclaimer:'Taom ko\'rinishi rasmdan farq qilishi mumkin' },
+       disclaimer:'Taom ko\'rinishi rasmdan farq qilishi mumkin',
+       done:n=>`№${n} buyurtma qabul qilindi!\n\nTasdiqlash uchun siz bilan bog'lanamiz.`,
+       failed:'Buyurtma yuborilmadi. Aloqani tekshirib, qayta urinib ko\'ring.' },
   en:{ sub:'Korean & Japanese kitchen', go:'Open menu', guest:'Guest',
        nophone:'Phone not set', promo:'Offers', code:'Promo codes',
        orders:'My orders', soon:'soon', lang:'Language', langName:'English',
@@ -550,7 +555,9 @@ const T = {
        rvTitle:'Leave a review', rvSub:'Rate us and write a few words',
        rvPh:'What you liked, what you did not', rvSend:'Send',
        pos:n=>n+(n===1?' item':' items'),
-       disclaimer:'Actual dish may differ from the photo' },
+       disclaimer:'Actual dish may differ from the photo',
+       done:n=>`Order #${n} accepted!\n\nWe will contact you to confirm.`,
+       failed:'Could not send the order. Check your connection and try again.' },
 };
 
 const store = {
@@ -637,14 +644,14 @@ function control(it){
     const b = document.createElement('button');
     b.className = 'add'; b.textContent = '+';
     b.setAttribute('aria-label', nm(it));
-    b.onclick = () => { bump(key, nm(it), it.price, 1, it.id); pop(it.id); };
+    b.onclick = () => { bump(key, nm(it), it.price, 1, it.id, {item_id:it.id, variant_id:null}); pop(it.id); };
     return b;
   }
   const w = document.createElement('div');
   w.className = 'stepper';
   w.innerHTML = `<button aria-label="Убрать">−</button><span>${n}</span><button aria-label="Добавить">+</button>`;
-  w.children[0].onclick = () => bump(key, nm(it), it.price, -1, it.id);
-  w.children[2].onclick = () => { bump(key, nm(it), it.price, 1, it.id); pop(it.id); };
+  w.children[0].onclick = () => bump(key, nm(it), it.price, -1, it.id, {item_id:it.id, variant_id:null});
+  w.children[2].onclick = () => { bump(key, nm(it), it.price, 1, it.id, {item_id:it.id, variant_id:null}); pop(it.id); };
   return w;
 }
 
@@ -655,8 +662,8 @@ function pop(id){
   setTimeout(() => d.classList.remove('pop'), 230);
 }
 
-function bump(key, name, price, delta, img){
-  const c = cart[key] || (cart[key] = {name, price, qty:0, img});
+function bump(key, name, price, delta, img, ids){
+  const c = cart[key] || (cart[key] = {name, price, qty:0, img, ...ids});
   c.qty += delta;
   if (c.qty <= 0) delete cart[key];
   redraw(); paintBar();
@@ -693,7 +700,7 @@ function openSheet(it){
       b.className = 'opt';
       b.innerHTML = `<span>${v.qty || vl(v)}</span><b>${money(v.price)} ${t().sum}</b>`;
       b.onclick = () => {
-        bump('v'+v.id, `${nm(it)} (${vl(v)})`, v.price, 1, it.id);
+        bump('v'+v.id, `${nm(it)} (${vl(v)})`, v.price, 1, it.id, {item_id:it.id, variant_id:v.id});
         pop(it.id); closeSheet();
       };
       box.append(b);
@@ -913,30 +920,75 @@ function paintSum(){
   btn.style.opacity = short ? .45 : 1;
 }
 
-function submitOrder(){
+let sending = false;
+
+async function submitOrder(){
+  if (sending) return;
   const goods = Object.values(cart).reduce((s,c) => s + c.qty * c.price, 0);
   if (goods < MIN_ORDER) return;
 
-  if (mode === 'delivery' && !coords && !document.getElementById('addr').value.trim()){
-    alert('Укажите точку на карте или впишите улицу и дом');
-    document.getElementById('addr').focus(); return;
+  if (mode === 'delivery' && !coords && !$('addr').value.trim()){
+    alert(t().street); $('addr').focus(); return;
   }
 
   const order = {
-    items: Object.values(cart).map(c => ({name:c.name, qty:c.qty, price:c.price})),
-    goods, mode, pay,
-    spot:    mode === 'pickup'   ? SPOTS[spot].name : null,
+    items: Object.values(cart).map(c => ({
+      item_id: c.item_id, variant_id: c.variant_id, qty: c.qty
+    })),
+    mode,
+    pay: pay === 'card' ? 'card_on_delivery' : 'cash',
+    spot: mode === 'pickup' ? ['compass','riviera'][spot] : null,
     address: mode === 'delivery' ? {
-      street: document.getElementById('addr').value.trim(),
-      apt:    document.getElementById('apt').value.trim(),
-      entr:   document.getElementById('entr').value.trim(),
-      note:   document.getElementById('note').value.trim(),
+      street: $('addr').value.trim(),
+      apt:    $('apt').value.trim(),
+      entr:   $('entr').value.trim(),
+      note:   $('note').value.trim(),
       lat: coords?.lat, lng: coords?.lng,
     } : null,
   };
-  console.log('ЗАКАЗ', order);
-  alert('Прототип: заказ собран, но пока никуда не уходит.\n\n'
-      + JSON.stringify(order, null, 1));
+
+  const btn = $('submitBtn');
+  sending = true; btn.style.opacity = .55;
+
+  try {
+    const r = await fetch(API + '/api/order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Init-Data': tg?.initData || '',
+      },
+      body: JSON.stringify(order),
+    });
+
+    if (!r.ok){
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || r.status);
+    }
+
+    const res = await r.json();
+    for (const k in cart) delete cart[k];
+    redraw(); closeCart(); toHome();
+    tg?.HapticFeedback?.notificationOccurred('success');
+    alert(t().done(res.order_id));
+
+  } catch(e){
+    tg?.HapticFeedback?.notificationOccurred('error');
+    alert(t().failed);
+    console.error(e);
+  } finally {
+    sending = false; btn.style.opacity = 1;
+  }
+}
+
+/* профиль с сервера — телефон и язык */
+async function loadMe(){
+  if (!tg?.initData) return;
+  try {
+    const r = await fetch(API + '/api/me', {headers:{'X-Init-Data': tg.initData}});
+    if (!r.ok) return;
+    const me = await r.json();
+    if (me.phone) $('hMeta').textContent = me.phone;
+  } catch(e){ /* сервер спит или недоступен — не мешаем заказывать */ }
 }
 
 /* ══════════ стартовый экран ══════════ */
@@ -1037,7 +1089,7 @@ function paintStatic(){
   $('note').placeholder = t().note;
 }
 
-paintHome(); paintStatic();
+paintHome(); paintStatic(); loadMe();
 document.body.style.overflow = 'hidden';   // стартовый экран открыт
 
 /* подсветка активной категории при скролле */
