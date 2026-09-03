@@ -889,6 +889,16 @@ function openGeoSettings(){
 
 function locateMe(){
   const put = (lat, lng) => { initMap(); map.setView([lat, lng], 17); coords = {lat, lng}; };
+  // === ВРЕМЕННАЯ ОТЛАДКА ===
+  try {
+    const p = (tg && tg.platform) ? tg.platform : 'нет tg';
+    const hasLM = !!(tg && tg.LocationManager);
+    const hasOpen = hasLM && typeof tg.LocationManager.openSettings === 'function';
+    const ver = (tg && tg.version) ? tg.version : '?';
+    geoHintShown = false;
+    showGeoBar('DBG platform=' + p + ' | LM=' + hasLM + ' | openSettings=' + hasOpen + ' | ver=' + ver, null);
+  } catch(e){ geoHintShown=false; showGeoBar('DBG error: ' + e.message, null); }
+  // === КОНЕЦ ОТЛАДКИ ===
 
   // внутри Telegram? скрипт грузится и в обычном браузере, но platform там 'unknown'
   const inTelegram = tg && tg.platform && tg.platform !== 'unknown';
