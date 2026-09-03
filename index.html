@@ -732,7 +732,7 @@ const SPOTS = [
   {name:"ТРЦ Compass", lat:41.2390226, lng:69.3286662},
   {name:"ТРЦ Riviera", lat:41.3395167, lng:69.2547119},
 ];
-let mode = 'delivery', spot = 0, pay = 'cash', map = null, coords = null;
+let mode = 'delivery', spot = 0, pay = 'cash', map = null, coords = null, suppressMove = false;
 
 function openCart(){
   if (!Object.keys(cart).length) return;
@@ -814,7 +814,7 @@ function initMap(){
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution:'© OpenStreetMap', maxZoom:19
   }).addTo(map);
-  map.on('moveend', () => { coords = map.getCenter(); askAddress(); });
+  map.on('moveend', () => { if (suppressMove) return; coords = map.getCenter(); askAddress(); });
   coords = map.getCenter();
 }
 let addrTimer = null, addrTyped = false;
@@ -888,17 +888,14 @@ function openGeoSettings(){
 }
 
 function locateMe(){
-  const put = (lat, lng) => { initMap(); map.setView([lat, lng], 17); coords = {lat, lng}; };
-  // === ВРЕМЕННАЯ ОТЛАДКА ===
-  try {
-    const p = (tg && tg.platform) ? tg.platform : 'нет tg';
-    const hasLM = !!(tg && tg.LocationManager);
-    const hasOpen = hasLM && typeof tg.LocationManager.openSettings === 'function';
-    const ver = (tg && tg.version) ? tg.version : '?';
-    geoHintShown = false;
-    showGeoBar('DBG platform=' + p + ' | LM=' + hasLM + ' | openSettings=' + hasOpen + ' | ver=' + ver, null);
-  } catch(e){ geoHintShown=false; showGeoBar('DBG error: ' + e.message, null); }
-  // === КОНЕЦ ОТЛАДКИ ===
+  const put = (lat, lng) => {
+    initMap();
+    suppressMove = true;                 // не давать moveend перебить GPS-точку
+    map.setView([lat, lng], 17);
+    coords = {lat: lat, lng: lng};
+    askAddress();                        // адрес именно по GPS-точке
+    setTimeout(() => { suppressMove = false; }, 600);
+  };
 
   // внутри Telegram? скрипт грузится и в обычном браузере, но platform там 'unknown'
   const inTelegram = tg && tg.platform && tg.platform !== 'unknown';
