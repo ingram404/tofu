@@ -901,6 +901,15 @@ function locateMe(){
   const inTelegram = tg && tg.platform && tg.platform !== 'unknown';
   const lm = inTelegram ? tg.LocationManager : null;
 
+  // На десктопе Telegram (Windows/macOS/web) определение геопозиции не работает —
+  // это ограничение самого Telegram. Сразу подсказываем двигать карту.
+  const desktop = ['macos','windows','linux','web','weba','webk','tdesktop','unigram'];
+  if (inTelegram && desktop.includes((tg.platform || '').toLowerCase())){
+    geoHintShown = false;
+    geoToast('На компьютере геопозиция недоступна — подвиньте карту на ваш адрес, метка в центре.');
+    return;
+  }
+
   if (!lm){ browserGeo(put); return; }
 
   let answered = false;
