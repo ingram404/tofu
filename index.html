@@ -841,20 +841,50 @@ function askAddress(){
 
 let geoHintShown = false;
 function geoToast(text){
-  if (geoHintShown) return;      // показываем подсказку только один раз
+  if (geoHintShown) return;      // обычная подсказка — один раз
   geoHintShown = true;
+  showGeoBar(text, null);
+}
+// плашка снизу; если передан onFix — показываем кнопку «Включить»
+function showGeoBar(text, onFix){
   let el = document.getElementById('geoToast');
   if (!el){
     el = document.createElement('div');
     el.id = 'geoToast';
     el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);'
-      + 'background:rgba(20,20,20,.95);color:#fff;padding:12px 16px;border-radius:12px;'
-      + 'font-size:14px;max-width:82%;text-align:center;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);';
+      + 'display:flex;align-items:center;gap:12px;'
+      + 'background:rgba(20,20,20,.96);color:#fff;padding:12px 16px;border-radius:12px;'
+      + 'font-size:14px;max-width:88%;text-align:left;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);';
     document.body.appendChild(el);
   }
-  el.textContent = text;
+  el.innerHTML = '';
+  const span = document.createElement('span');
+  span.textContent = text;
+  span.style.flex = '1';
+  el.appendChild(span);
+  el.style.transition = '';
   el.style.opacity = '1';
-  setTimeout(() => { el.style.transition='opacity .5s'; el.style.opacity='0'; }, 3500);
+  if (onFix){
+    const btn = document.createElement('button');
+    btn.textContent = 'Включить';
+    btn.style.cssText = 'flex:none;background:#b6e82a;color:#111;border:0;'
+      + 'padding:8px 14px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;';
+    btn.onclick = () => { onFix(); el.style.transition='opacity .4s'; el.style.opacity='0'; };
+    el.appendChild(btn);
+    // с кнопкой не прячем автоматически — пусть клиент нажмёт
+  } else {
+    setTimeout(() => { el.style.transition='opacity .5s'; el.style.opacity='0'; }, 3500);
+  }
+}
+// открыть настройки геолокации прямо в Telegram
+function openGeoSettings(){
+  const lm = (tg && tg.platform && tg.platform !== 'unknown') ? tg.LocationManager : null;
+  try {
+    if (lm && typeof lm.openSettings === 'function') lm.openSettings();
+    else geoHintShown = false, geoToast('Разрешите геолокацию в настройках или двигайте карту.');
+  } catch(e){
+    geoHintShown = false; geoToast('Не удалось открыть настройки. Двигайте карту — метка в центре.');
+  }
 }
 
 function locateMe(){
@@ -876,7 +906,7 @@ function locateMe(){
       if (answered) return;
       answered = true; clearTimeout(fallback);
       if (loc) put(loc.latitude, loc.longitude);
-      else geoToast('Не удалось определить местоположение. Двигайте карту — метка в центре.');
+      else { geoHintShown = false; showGeoBar('Доступ к геолокации закрыт.', openGeoSettings); }
     }));
   } catch(e){
     if (!answered){ answered = true; clearTimeout(fallback); browserGeo(put); }
@@ -896,10 +926,11 @@ function browserGeo(put){
   navigator.geolocation.getCurrentPosition(
     p => put(p.coords.latitude, p.coords.longitude),
     err => {
-      const msg = err.code === 1
+      const inTg = tg && tg.platform && tg.platform !== 'unknown';
+      if (err.code === 1 && inTg){ geoHintShown = false; showGeoBar('Доступ к геолокации закрыт.', openGeoSettings); }
+      else geoToast(err.code === 1
         ? 'Доступ к геолокации закрыт. Двигайте карту — метка в центре.'
-        : 'Не удалось определить местоположение. Двигайте карту — метка в центре.';
-      geoToast(msg);
+        : 'Не удалось определить местоположение. Двигайте карту — метка в центре.');
     },
     {enableHighAccuracy:true, timeout:8000}
   );
