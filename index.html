@@ -443,7 +443,10 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
       <div class="pin">📍</div>
       <button class="geo" onclick="locateMe()" data-i="geo">Моё местоположение</button>
     </div>
-    <input id="addr" placeholder="Улица и дом" style="margin-top:10px">
+    <div style="position:relative;margin-top:10px">
+      <input id="addr" placeholder="Улица и дом" autocomplete="off">
+      <div id="addrSug" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:1200;background:#1c1a17;border:1px solid #333;border-radius:10px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)"></div>
+    </div>
     <div class="two">
       <input id="apt" placeholder="Квартира">
       <input id="entr" placeholder="Подъезд">
@@ -820,6 +823,72 @@ function initMap(){
 let addrTimer = null, addrTyped = false;
 
 /* координаты -> адрес, бесплатно через OpenStreetMap */
+const YANDEX_SUGGEST_KEY = '45bc136d-1551-4e3f-9af0-67373e3f73a1';
+let sugTimer = null;
+function initAddrSuggest(){
+  const inp = document.getElementById('addr');
+  const box = document.getElementById('addrSug');
+  if (!inp || !box) return;
+  inp.addEventListener('input', () => {
+    addrTyped = true;                       // клиент печатает сам
+    const q = inp.value.trim();
+    clearTimeout(sugTimer);
+    if (q.length < 3){ box.style.display='none'; box.innerHTML=''; return; }
+    sugTimer = setTimeout(() => fetchSuggest(q, box, inp), 250);
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target !== inp && !box.contains(e.target)){ box.style.display='none'; }
+  });
+}
+async function fetchSuggest(q, box, inp){
+  try {
+    const url = 'https://suggest-maps.yandex.ru/v1/suggest'
+      + '?apikey=' + YANDEX_SUGGEST_KEY
+      + '&text=' + encodeURIComponent('Ташкент ' + q)
+      + '&lang=ru_RU&results=6&countries=uz&types=house,street'
+      + '&ll=69.2797,41.3111&spn=0.6,0.6&print_address=1';
+    const r = await fetch(url);
+    if (!r.ok) { box.style.display='none'; return; }
+    const data = await r.json();
+    const items = data.results || [];
+    if (!items.length){ box.style.display='none'; box.innerHTML=''; return; }
+    box.innerHTML = '';
+    items.forEach(it => {
+      const title = (it.title && it.title.text) ? it.title.text : '';
+      const subt  = (it.subtitle && it.subtitle.text) ? it.subtitle.text : '';
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:11px 14px;cursor:pointer;border-bottom:1px solid #2a2723;font-size:14px;color:#fff';
+      row.innerHTML = '<div>' + title + '</div>'
+        + (subt ? '<div style="font-size:12px;color:#8a857c;margin-top:2px">'+subt+'</div>' : '');
+      row.onmouseenter = () => row.style.background = '#26231f';
+      row.onmouseleave = () => row.style.background = '';
+      row.onclick = () => chooseSuggest(title, box, inp);
+      box.appendChild(row);
+    });
+    box.style.display = 'block';
+  } catch(e){ box.style.display='none'; }
+}
+async function chooseSuggest(text, box, inp){
+  inp.value = text;
+  addrTyped = true;
+  box.style.display = 'none';
+  box.innerHTML = '';
+  // добираем координаты через Nominatim, чтобы поставить метку на карту
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search'
+      + '?format=json&limit=1&accept-language=ru&countrycodes=uz&q=' + encodeURIComponent(text));
+    const arr = await r.json();
+    if (arr && arr.length){
+      const lat = parseFloat(arr[0].lat), lng = parseFloat(arr[0].lon);
+      initMap();
+      suppressMove = true;
+      map.setView([lat, lng], 17);
+      coords = {lat: lat, lng: lng};
+      setTimeout(() => { suppressMove = false; }, 600);
+    }
+  } catch(e){ /* координаты не критичны — адрес уже введён */ }
+}
+
 function askAddress(){
   if (addrTyped || !coords) return;
   clearTimeout(addrTimer);
@@ -1152,7 +1221,7 @@ function paintStatic(){
   $('note').placeholder = t().note;
 }
 
-paintHome(); paintStatic(); loadMe();
+paintHome(); paintStatic(); loadMe(); initAddrSuggest();
 document.body.style.overflow = 'hidden';   // стартовый экран открыт
 
 /* подсветка активной категории при скролле */
