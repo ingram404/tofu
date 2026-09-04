@@ -1270,6 +1270,7 @@ function soon(){
 /* ---- отзыв ---- */
 let stars = 0;
 function openReview(){
+  alert('openReview вызвана');
   const box = $('rvStars');
   box.replaceChildren();
   for (let i = 1; i <= 5; i++){
@@ -1280,6 +1281,7 @@ function openReview(){
   }
   $('veil').classList.add('on');
   $('rev').classList.add('on');
+  alert('rev найден: ' + !!document.getElementById('rev') + ' | класс on: ' + document.getElementById('rev').classList.contains('on'));
 }
 function sendReview(){
   const txt = $('rvText').value.trim();
