@@ -500,7 +500,7 @@ const tg = window.Telegram?.WebApp;
 tg?.ready(); tg?.expand();
 
 const API = 'https://tofu-server-zq6z.onrender.com';   // адрес сервера
-const SUPPORT = 'tofu_uz_bot';        // куда уходит отзыв — заменить на аккаунт поддержки
+const SUPPORT = 'tofu_uz';        // куда уходит отзыв — заменить на аккаунт поддержки
 
 /* ══════════ язык и тема ══════════ */
 const T = {
@@ -733,7 +733,9 @@ function openSheet(it){
 function closeSheet(){
   document.getElementById('veil').classList.remove('on');
   document.getElementById('sheet').classList.remove('on');
-  document.getElementById('rev').classList.remove('on');
+  const rev = document.getElementById('rev');
+  rev.classList.remove('on');
+  rev.style.transform = 'translateY(101%)';
 }
 
 /* ---------- нижняя панель ---------- */
@@ -1154,7 +1156,7 @@ function paintHome(){
   $('hGo').textContent   = t().go;
   $('tPromo').textContent  = t().promo;   $('iPromo').textContent  = t().soon;
   $('tCode').textContent   = t().code;    $('iCode').textContent   = t().soon;
-  $('tOrders').textContent = t().orders;  $('iOrders').textContent = t().soon;
+  $('tOrders').textContent = t().orders;  $('iOrders').textContent = '';
   $('tLang').textContent   = t().lang;    $('iLang').textContent   = t().langName;
   $('tTheme').textContent  = t().theme;
   $('iTheme').textContent  = theme === 'dark' ? t().dark : t().light;
@@ -1270,7 +1272,6 @@ function soon(){
 /* ---- отзыв ---- */
 let stars = 0;
 function openReview(){
-  alert('openReview вызвана');
   const box = $('rvStars');
   box.replaceChildren();
   for (let i = 1; i <= 5; i++){
@@ -1279,9 +1280,14 @@ function openReview(){
     b.onclick = () => { stars = i; openReview(); };
     box.append(b);
   }
-  $('veil').classList.add('on');
-  $('rev').classList.add('on');
-  alert('rev найден: ' + !!document.getElementById('rev') + ' | класс on: ' + document.getElementById('rev').classList.contains('on'));
+  const rev = document.getElementById('rev');
+  const veil = document.getElementById('veil');
+  veil.classList.add('on');
+  // надёжный показ: форсируем стили поверх любых конфликтов
+  rev.classList.add('on');
+  rev.style.transform = 'none';
+  rev.style.zIndex = '9999';
+  rev.style.transition = 'transform .28s cubic-bezier(.3,1,.4,1)';
 }
 function sendReview(){
   const txt = $('rvText').value.trim();
