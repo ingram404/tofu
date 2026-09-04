@@ -581,10 +581,27 @@ const menuEl = document.getElementById('menu');
 const chipsEl = document.getElementById('chips');
 
 const lat = () => lang !== 'ru';
-function catName(c){ return lat() ? (MENU.cats_uz[c]||c) : c; }
-function nm(it){ return lat() ? it.name_uz : it.name; }
-function ds(it){ return lat() ? it.desc_uz : it.desc; }
-function vl(v){ return lat() ? v.label_uz : v.label; }
+function catName(c){
+  if (lang === 'en') return (MENU.cats_en && MENU.cats_en[c]) || c;
+  if (lang === 'uz') return (MENU.cats_uz && MENU.cats_uz[c]) || c;
+  return c;
+}
+function nm(it){
+  if (lang === 'en') return it.name_en || it.name;
+  if (lang === 'uz') return it.name_uz || it.name;
+  return it.name;
+}
+function ds(it){
+  // описания на английский не переведены — показываем узбекское как запасной
+  if (lang === 'en') return it.desc_en || it.desc_uz || it.desc;
+  if (lang === 'uz') return it.desc_uz || it.desc;
+  return it.desc;
+}
+function vl(v){
+  if (lang === 'en') return v.label_en || v.label_uz || v.label;
+  if (lang === 'uz') return v.label_uz || v.label;
+  return v.label;
+}
 
 MENU.order.forEach((cat, ci) => {
   const list = MENU.items.filter(i => i.cat === cat);
