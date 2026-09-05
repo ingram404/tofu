@@ -455,6 +455,16 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
   </div>
 
   <div class="block">
+    <h3 data-i="promoTitle">Промокод</h3>
+    <div style="display:flex;gap:8px">
+      <input id="promoInput" placeholder="Введите промокод" autocomplete="off"
+             style="flex:1;text-transform:uppercase">
+      <button class="geo" style="flex:none;white-space:nowrap" onclick="applyPromo()" data-i="promoApply">Применить</button>
+    </div>
+    <div id="promoMsg" style="margin-top:8px;font-size:13px;display:none"></div>
+  </div>
+
+  <div class="block">
     <h3 data-i="pay">Оплата</h3>
     <button class="spot" aria-pressed="true" onclick="setPay('cash')" id="pCash">
       <span><b data-i="cash">Наличными</b><span data-i="toCourier">Курьеру при получении</span></span><i></i>
@@ -516,6 +526,7 @@ const T = {
        street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
        geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении',
        free:'бесплатно', total:'Итого', submit:'Оформить заказ', sum:'сум',
+       promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка',
        from:'от', min:n=>`Минимальная сумма заказа — ${n} сум`,
        rvTitle:'Оставить отзыв', rvSub:'Оцените и напишите пару слов — нам это помогает',
        rvPh:'Что понравилось, что нет', rvSend:'Отправить',
@@ -535,6 +546,7 @@ const T = {
        street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
        geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi',
        free:'bepul', total:'Jami', submit:'Buyurtma berish', sum:'so\'m',
+       promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma',
        from:'dan', min:n=>`Minimal buyurtma summasi — ${n} so'm`,
        rvTitle:'Fikr qoldirish', rvSub:'Baholang va bir necha so\'z yozing',
        rvPh:'Nima yoqdi, nima yoqmadi', rvSend:'Yuborish',
@@ -554,6 +566,7 @@ const T = {
        street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
        geo:'My location', goods:'Dishes', delivCost:'calculated at checkout',
        free:'free', total:'Total', submit:'Place order', sum:'UZS',
+       promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount',
        from:'from', min:n=>`Minimum order is ${n} UZS`,
        rvTitle:'Leave a review', rvSub:'Rate us and write a few words',
        rvPh:'What you liked, what you did not', rvSend:'Send',
@@ -755,6 +768,7 @@ const SPOTS = [
   {name:"ТРЦ Riviera", lat:41.3395167, lng:69.2547119},
 ];
 let mode = 'delivery', spot = 0, pay = 'cash', map = null, coords = null, suppressMove = false;
+let promoCode = '', promoDiscount = 0;
 
 function openCart(){
   if (!Object.keys(cart).length) return;
@@ -1058,9 +1072,12 @@ function paintSum(){
     rows.push(`<div><span class="mut">${t().deliv}</span><span class="mut">${t().delivCost}</span></div>`);
   else
     rows.push(`<div><span class="mut">${t().pick}</span><span>${t().free}</span></div>`);
-  rows.push(`<div class="tot"><span>${t().total}</span><b>${money(goods + (fee||0))} ${t().sum}</b></div>`);
+  if (promoDiscount > 0)
+    rows.push(`<div><span class="mut">${t().discount}</span><span style="color:#8bd450">−${money(promoDiscount)} ${t().sum}</span></div>`);
+  const finalTotal = Math.max(0, goods + (fee||0) - promoDiscount);
+  rows.push(`<div class="tot"><span>${t().total}</span><b>${money(finalTotal)} ${t().sum}</b></div>`);
   document.getElementById('sum').innerHTML = rows.join('');
-  document.getElementById('sumTotal').textContent = money(goods + (fee||0)) + ' ' + t().sum;
+  document.getElementById('sumTotal').textContent = money(finalTotal) + ' ' + t().sum;
 
   const short = goods < MIN_ORDER;
   const w = document.getElementById('warn');
@@ -1072,6 +1089,38 @@ function paintSum(){
 }
 
 let sending = false;
+
+async function applyPromo(){
+  const inp = document.getElementById('promoInput');
+  const msg = document.getElementById('promoMsg');
+  const code = inp.value.trim().toUpperCase();
+  if (!code){ return; }
+  // сумма блюд
+  let goods = 0;
+  for (const c of Object.values(cart)) goods += c.price * c.qty;
+  try {
+    const r = await fetch(API + '/api/promo/check', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-Init-Data': tg?.initData || ''},
+      body: JSON.stringify({code: code, sum: goods})
+    });
+    const res = await r.json();
+    if (res.ok){
+      promoCode = code; promoDiscount = res.discount;
+      msg.style.display = 'block'; msg.style.color = '#8bd450';
+      msg.textContent = '✓ ' + t().discount + ': −' + money(res.discount) + ' ' + t().sum;
+    } else {
+      promoCode = ''; promoDiscount = 0;
+      msg.style.display = 'block'; msg.style.color = '#e06c6c';
+      msg.textContent = res.message || 'Промокод не подошёл';
+    }
+  } catch(e){
+    promoCode = ''; promoDiscount = 0;
+    msg.style.display = 'block'; msg.style.color = '#e06c6c';
+    msg.textContent = 'Не удалось проверить промокод';
+  }
+  redraw();
+}
 
 async function submitOrder(){
   if (sending) return;
@@ -1096,6 +1145,7 @@ async function submitOrder(){
       note:   $('note').value.trim(),
       lat: coords?.lat, lng: coords?.lng,
     } : null,
+    promo: promoCode || null,
   };
 
   const btn = $('submitBtn');
