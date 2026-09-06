@@ -351,8 +351,12 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
 <body>
 
 <header>
+  <button id="menuBack" onclick="toHome()" aria-label="На главную"
+          style="display:none;background:none;border:0;color:var(--paper);font-size:22px;cursor:pointer;padding:4px 10px 4px 0">←</button>
   <div class="brand" onclick="toHome()"><img class="mark" id="mLogo" src="logo-dark.png" alt="TOFU"><span id="mSub">корейско-японская кухня</span></div>
   <nav class="chips" id="chips"></nav>
+  <button id="menuCart" onclick="openCart()" aria-label="Корзина"
+          style="display:none;background:none;border:0;font-size:22px;cursor:pointer;position:relative;padding:4px 0 4px 10px;margin-left:auto">🛒<span id="cartBadge" style="display:none;position:absolute;top:0;right:-4px;background:#b6e82a;color:#111;font-size:11px;font-weight:700;min-width:16px;height:16px;border-radius:9px;text-align:center;line-height:16px;padding:0 3px"></span></button>
 </header>
 
 <div class="home" id="home">
@@ -361,12 +365,13 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
     <p id="hSub">корейско-японская кухня</p>
   </div>
 
-  <div class="who">
+  <div class="who" onclick="openProfile()" style="cursor:pointer">
     <div class="ava" id="hAva">?</div>
     <div>
       <b id="hName">Гость</b>
       <span id="hMeta">Телефон не указан</span>
     </div>
+    <i style="margin-left:auto;color:#8a857c">›</i>
   </div>
 
   <button class="go" id="hGo" onclick="toMenu()">Открыть меню</button>
@@ -376,8 +381,8 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
   <button class="tile" onclick="soon('promo')">
     <em>🔥</em><span id="tPromo">Акции</span><i id="iPromo">скоро</i>
   </button>
-  <button class="tile" onclick="soon('code')">
-    <em>🎟</em><span id="tCode">Промокоды</span><i id="iCode">скоро</i>
+  <button class="tile" onclick="openPromo()">
+    <em>🎟</em><span id="tCode">Промокоды</span><i id="iCode"></i>
   </button>
   <button class="tile" onclick="openOrders()">
     <em>📦</em><span id="tOrders">Мои заказы</span><i id="iOrders"></i>
@@ -455,16 +460,6 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
   </div>
 
   <div class="block">
-    <h3 data-i="promoTitle">Промокод</h3>
-    <div style="display:flex;gap:8px">
-      <input id="promoInput" placeholder="Введите промокод" autocomplete="off"
-             style="flex:1;text-transform:uppercase">
-      <button class="geo" style="flex:none;white-space:nowrap" onclick="applyPromo()" data-i="promoApply">Применить</button>
-    </div>
-    <div id="promoMsg" style="margin-top:8px;font-size:13px;display:none"></div>
-  </div>
-
-  <div class="block">
     <h3 data-i="pay">Оплата</h3>
     <button class="spot" aria-pressed="true" onclick="setPay('cash')" id="pCash">
       <span><b data-i="cash">Наличными</b><span data-i="toCourier">Курьеру при получении</span></span><i></i>
@@ -515,7 +510,7 @@ const SUPPORT = 'tofu_uz';        // куда уходит отзыв — зам
 /* ══════════ язык и тема ══════════ */
 const T = {
   ru:{ sub:'корейско-японская кухня', go:'Открыть меню', guest:'Гость',
-       nophone:'Телефон не указан', promo:'Акции', code:'Промокоды',
+       nophone:'Телефон не указан', promo:'Акции', code:'Промокоды', profileTitle:'Профиль',
        orders:'Мои заказы', soon:'скоро', lang:'Язык', langName:'Русский',
        theme:'Тема', dark:'Тёмная', light:'Светлая', review:'Оставить отзыв',
        hint:'Профиль, акции и история заказов появятся после подключения сервера',
@@ -759,6 +754,14 @@ function paintBar(){
   document.getElementById('bar').classList.toggle('on', n > 0);
   document.getElementById('barCount').textContent = t().pos(n);
   document.getElementById('barSum').textContent = money(sum) + ' ' + t().sum;
+  updateCartBadge();
+}
+function updateCartBadge(){
+  const badge = document.getElementById('cartBadge');
+  if (!badge) return;
+  const n = Object.values(cart).reduce((s,c) => s + c.qty, 0);
+  if (n > 0){ badge.style.display = 'block'; badge.textContent = n; }
+  else { badge.style.display = 'none'; }
 }
 
 /* ══════════ экран оформления ══════════ */
@@ -1090,6 +1093,25 @@ function paintSum(){
 
 let sending = false;
 
+function openPromo(){
+  document.getElementById('promoOvTitle').textContent = t().code;
+  document.getElementById('promoInput').placeholder = t().promoTitle;
+  document.getElementById('promoApplyBtn').textContent = t().promoApply;
+  const msg = document.getElementById('promoMsg');
+  if (promoCode){
+    msg.style.display='block'; msg.style.color='#8bd450';
+    msg.textContent = '✓ ' + promoCode + ' — ' + t().promoOk;
+    document.getElementById('promoInput').value = promoCode;
+  } else {
+    msg.style.display='none';
+  }
+  document.getElementById('promoOverlay').style.display='block';
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+function closePromo(){
+  document.getElementById('promoOverlay').style.display='none';
+}
+
 async function applyPromo(){
   const inp = document.getElementById('promoInput');
   const msg = document.getElementById('promoMsg');
@@ -1182,14 +1204,50 @@ async function submitOrder(){
 }
 
 /* профиль с сервера — телефон и язык */
+let myProfile = {name:'', phone:''};
 async function loadMe(){
   if (!tg?.initData) return;
   try {
     const r = await fetch(API + '/api/me', {headers:{'X-Init-Data': tg.initData}});
     if (!r.ok) return;
     const me = await r.json();
+    myProfile.name = me.name || '';
+    myProfile.phone = me.phone || '';
+    if (me.name) $('hName').textContent = me.name;
     if (me.phone) $('hMeta').textContent = me.phone;
   } catch(e){ /* сервер спит или недоступен — не мешаем заказывать */ }
+}
+function openProfile(){
+  document.getElementById('profOvTitle').textContent = t().profileTitle || 'Профиль';
+  document.getElementById('profName').value = myProfile.name || '';
+  document.getElementById('profPhone').value = myProfile.phone || '';
+  document.getElementById('profMsg').style.display = 'none';
+  document.getElementById('profileOverlay').style.display = 'block';
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+function closeProfile(){
+  document.getElementById('profileOverlay').style.display = 'none';
+}
+async function saveProfile(){
+  const name = document.getElementById('profName').value.trim();
+  const phone = document.getElementById('profPhone').value.trim();
+  const msg = document.getElementById('profMsg');
+  try {
+    const r = await fetch(API + '/api/profile', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Init-Data': tg?.initData || ''},
+      body: JSON.stringify({name, phone})
+    });
+    if (!r.ok) throw new Error();
+    myProfile.name = name; myProfile.phone = phone;
+    if (name) $('hName').textContent = name;
+    if (phone) $('hMeta').textContent = phone;
+    closeProfile();
+    tg?.HapticFeedback?.notificationOccurred('success');
+  } catch(e){
+    msg.style.display='block'; msg.style.color='#e06c6c';
+    msg.textContent = 'Не удалось сохранить. Попробуйте позже.';
+  }
 }
 
 /* ══════════ стартовый экран ══════════ */
@@ -1225,6 +1283,9 @@ function paintHome(){
 function toMenu(){
   $('home').classList.add('off');
   document.body.style.overflow = '';
+  document.getElementById('menuBack').style.display = 'block';
+  document.getElementById('menuCart').style.display = 'block';
+  updateCartBadge();
   tg?.BackButton?.show();
   paintBar();
 }
@@ -1232,6 +1293,8 @@ function toHome(){
   $('home').classList.remove('off');
   document.body.style.overflow = 'hidden';
   $('bar').classList.remove('on');
+  document.getElementById('menuBack').style.display = 'none';
+  document.getElementById('menuCart').style.display = 'none';
   tg?.BackButton?.hide();
 }
 
@@ -1383,6 +1446,38 @@ document.querySelectorAll('section').forEach(s => io.observe(s));
       <button onclick="closeOrders()" style="background:none;border:0;color:#8a857c;font-size:24px;line-height:1;cursor:pointer">×</button>
     </div>
     <div id="ordersList" style="overflow-y:auto;padding:8px 14px 24px;flex:1"></div>
+  </div>
+</div>
+<div id="promoOverlay" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6)">
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#141210;border-radius:18px 18px 0 0;padding:0 0 24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #262320">
+      <b style="font-size:17px;color:#fff" id="promoOvTitle">Промокоды</b>
+      <button onclick="closePromo()" style="background:none;border:0;color:#8a857c;font-size:24px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:18px">
+      <div style="display:flex;gap:8px">
+        <input id="promoInput" placeholder="Введите промокод" autocomplete="off"
+               style="flex:1;text-transform:uppercase">
+        <button class="geo" style="flex:none;white-space:nowrap" onclick="applyPromo()" id="promoApplyBtn">Применить</button>
+      </div>
+      <div id="promoMsg" style="margin-top:12px;font-size:14px;display:none"></div>
+    </div>
+  </div>
+</div>
+<div id="profileOverlay" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6)">
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#141210;border-radius:18px 18px 0 0;padding:0 0 24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #262320">
+      <b style="font-size:17px;color:#fff" id="profOvTitle">Профиль</b>
+      <button onclick="closeProfile()" style="background:none;border:0;color:#8a857c;font-size:24px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:18px">
+      <label style="display:block;color:#8a857c;font-size:13px;margin-bottom:6px" id="profNameLbl">Имя</label>
+      <input id="profName" placeholder="Ваше имя" style="width:100%;margin-bottom:14px">
+      <label style="display:block;color:#8a857c;font-size:13px;margin-bottom:6px" id="profPhoneLbl">Телефон</label>
+      <input id="profPhone" placeholder="998..." inputmode="tel" style="width:100%;margin-bottom:18px">
+      <button class="go" style="width:100%" onclick="saveProfile()" id="profSaveBtn">Сохранить</button>
+      <div id="profMsg" style="margin-top:10px;font-size:13px;display:none"></div>
+    </div>
   </div>
 </div>
 </body>
