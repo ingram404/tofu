@@ -529,7 +529,7 @@ const T = {
        cash:'Наличными', card:'Картой', toCourier:'Курьеру при получении',
        street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
        geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении',
-       free:'бесплатно', total:'Итого', submit:'Оформить заказ', sum:'сум',
+       free:'бесплатно', total:'Итого', submit:'Оформить заказ', add:'В корзину', sum:'сум',
        promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка',
        from:'от', min:n=>`Минимальная сумма заказа — ${n} сум`,
        rvTitle:'Оставить отзыв', rvSub:'Оцените и напишите пару слов — нам это помогает',
@@ -549,7 +549,7 @@ const T = {
        cash:'Naqd pul', card:'Karta', toCourier:'Kuryerga olganda',
        street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
        geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi',
-       free:'bepul', total:'Jami', submit:'Buyurtma berish', sum:'so\'m',
+       free:'bepul', total:'Jami', submit:'Buyurtma berish', add:'Savatga', sum:'so\'m',
        promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma',
        from:'dan', min:n=>`Minimal buyurtma summasi — ${n} so'm`,
        rvTitle:'Fikr qoldirish', rvSub:'Baholang va bir necha so\'z yozing',
@@ -569,7 +569,7 @@ const T = {
        cash:'Cash', card:'Card', toCourier:'To the courier on delivery',
        street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
        geo:'My location', goods:'Dishes', delivCost:'calculated at checkout',
-       free:'free', total:'Total', submit:'Place order', sum:'UZS',
+       free:'free', total:'Total', submit:'Place order', add:'Add to cart', sum:'UZS',
        promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount',
        from:'from', min:n=>`Minimum order is ${n} UZS`,
        rvTitle:'Leave a review', rvSub:'Rate us and write a few words',
@@ -685,7 +685,7 @@ function control(it){
   const key = 'i'+it.id;
   const n = cart[key]?.qty || 0;
 
-  if (it.variants.length){
+  if (it.variants.length || addonFor(it.cat)){
     const b = document.createElement('button');
     b.className = 'add'; b.textContent = '+';
     b.setAttribute('aria-label', nm(it));
@@ -761,6 +761,26 @@ function openSheet(it){
     pr.textContent = `+${money(addon.price)} ${t().sum}`;
     lbl.append(addonChk, span, pr);
     box.append(lbl);
+  }
+
+  // товар без вариантов, но с допником — кнопка "Добавить"
+  if (!it.variants.length){
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = `<span>${t().add}</span><b>${money(it.price)} ${t().sum}</b>`;
+    b.onclick = () => {
+      if (addon && addonChk && addonChk.checked){
+        bump('i'+it.id+'a'+addon.id,
+             `${nm(it)} + ${adName(addon)}`,
+             it.price + addon.price, 1, it.id,
+             {item_id:it.id, variant_id:null, addon_id:addon.id});
+      } else {
+        bump('i'+it.id, nm(it), it.price, 1, it.id,
+             {item_id:it.id, variant_id:null});
+      }
+      pop(it.id); closeSheet();
+    };
+    box.append(b);
   }
 
   const groups = {};
