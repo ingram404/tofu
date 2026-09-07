@@ -178,6 +178,15 @@ section{padding:26px 16px 6px;scroll-margin-top:var(--head-h,112px)}
 }
 .opt:active{border-color:var(--lime)}
 .opt b{font:700 15px Oswald,sans-serif;color:var(--lime);letter-spacing:.02em}
+.addon{
+  width:100%;display:flex;align-items:center;gap:10px;
+  background:var(--ink2);border:1px dashed var(--line);border-radius:11px;
+  padding:12px 15px;margin-bottom:12px;color:var(--paper);cursor:pointer;
+  font:500 14.5px Inter,sans-serif;
+}
+.addon input{width:18px;height:18px;accent-color:var(--lime);cursor:pointer;flex:0 0 auto}
+.addon span{flex:1}
+.addon b{font:700 14px Oswald,sans-serif;color:var(--lime);letter-spacing:.02em}
 
 /* ── экран оформления ────────────────── */
 .screen{
@@ -722,12 +731,37 @@ function redraw(){
 
 /* ---------- шторка вариантов ---------- */
 let current = null;
+function adName(a){
+  if (lang === 'en') return a.name_en || a.name_uz || a.name;
+  if (lang === 'uz') return a.name_uz || a.name;
+  return a.name;
+}
+function addonFor(cat){
+  return (MENU.addons || []).find(a => a.cat === cat) || null;
+}
+
 function openSheet(it){
   current = it;
   document.getElementById('shName').textContent = nm(it);
   document.getElementById('shDesc').textContent = ds(it) || '';
   const box = document.getElementById('shOpts');
   box.replaceChildren();
+
+  // допник для этой категории (напр. + Айс-ти к комбо)
+  const addon = addonFor(it.cat);
+  let addonChk = null;
+  if (addon){
+    const lbl = document.createElement('label');
+    lbl.className = 'addon';
+    addonChk = document.createElement('input');
+    addonChk.type = 'checkbox';
+    const span = document.createElement('span');
+    span.textContent = `+ ${adName(addon)}`;
+    const pr = document.createElement('b');
+    pr.textContent = `+${money(addon.price)} ${t().sum}`;
+    lbl.append(addonChk, span, pr);
+    box.append(lbl);
+  }
 
   const groups = {};
   it.variants.forEach(v => (groups[v.filling || ''] ??= []).push(v));
@@ -743,7 +777,15 @@ function openSheet(it){
       b.className = 'opt';
       b.innerHTML = `<span>${v.qty || vl(v)}</span><b>${money(v.price)} ${t().sum}</b>`;
       b.onclick = () => {
-        bump('v'+v.id, `${nm(it)} (${vl(v)})`, v.price, 1, it.id, {item_id:it.id, variant_id:v.id});
+        if (addon && addonChk && addonChk.checked){
+          bump('v'+v.id+'a'+addon.id,
+               `${nm(it)} (${vl(v)}) + ${adName(addon)}`,
+               v.price + addon.price, 1, it.id,
+               {item_id:it.id, variant_id:v.id, addon_id:addon.id});
+        } else {
+          bump('v'+v.id, `${nm(it)} (${vl(v)})`, v.price, 1, it.id,
+               {item_id:it.id, variant_id:v.id});
+        }
         pop(it.id); closeSheet();
       };
       box.append(b);
@@ -1170,7 +1212,7 @@ async function submitOrder(){
 
   const order = {
     items: Object.values(cart).map(c => ({
-      item_id: c.item_id, variant_id: c.variant_id, qty: c.qty
+      item_id: c.item_id, variant_id: c.variant_id, qty: c.qty, addon_id: c.addon_id || null
     })),
     mode,
     pay: pay === 'card' ? 'card_on_delivery' : 'cash',
