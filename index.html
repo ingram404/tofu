@@ -620,8 +620,13 @@ MENU.order.forEach((cat, ci) => {
   chip.textContent = catName(cat);
   chip.dataset.cat = cat;
   chip.setAttribute('aria-current', ci === 0);
-  chip.onclick = () => document.getElementById('c'+ci)
-        .scrollIntoView({behavior:'smooth', block:'start'});
+  chip.onclick = () => {
+    suppressSpy = true;
+    clearTimeout(spyTimer);
+    spyTimer = setTimeout(() => { suppressSpy = false; }, 700);
+    [...chipsEl.children].forEach(c => c.setAttribute('aria-current', c === chip));
+    document.getElementById('c'+ci).scrollIntoView({behavior:'smooth', block:'start'});
+  };
   chipsEl.append(chip);
 
   const sec = document.createElement('section');
@@ -1438,7 +1443,9 @@ paintHome(); paintStatic(); loadMe(); initAddrSuggest();
 document.body.style.overflow = 'hidden';   // стартовый экран открыт
 
 /* подсветка активной категории при скролле */
+let suppressSpy = false, spyTimer = null;
 const io = new IntersectionObserver(es => {
+  if (suppressSpy) return;
   es.forEach(e => {
     if (!e.isIntersecting) return;
     const i = +e.target.id.slice(1);
