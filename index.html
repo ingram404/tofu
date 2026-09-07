@@ -387,8 +387,8 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
 
   <div class="gap"></div>
 
-  <button class="tile" onclick="soon('promo')">
-    <em>🔥</em><span id="tPromo">Акции</span><i id="iPromo">скоро</i>
+  <button class="tile" onclick="openPromos()">
+    <em>🔥</em><span id="tPromo">Акции</span><i id="iPromo"></i>
   </button>
   <button class="tile" onclick="openPromo()">
     <em>🎟</em><span id="tCode">Промокоды</span><i id="iCode"></i>
@@ -530,7 +530,7 @@ const T = {
        street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
        geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении',
        free:'бесплатно', total:'Итого', submit:'Оформить заказ', add:'В корзину', sum:'сум',
-       promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка',
+       promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка', promoSaving:'Скидка по акции',
        from:'от', min:n=>`Минимальная сумма заказа — ${n} сум`,
        rvTitle:'Оставить отзыв', rvSub:'Оцените и напишите пару слов — нам это помогает',
        rvPh:'Что понравилось, что нет', rvSend:'Отправить',
@@ -550,7 +550,7 @@ const T = {
        street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
        geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi',
        free:'bepul', total:'Jami', submit:'Buyurtma berish', add:'Savatga', sum:'so\'m',
-       promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma',
+       promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma', promoSaving:'Aksiya chegirmasi',
        from:'dan', min:n=>`Minimal buyurtma summasi — ${n} so'm`,
        rvTitle:'Fikr qoldirish', rvSub:'Baholang va bir necha so\'z yozing',
        rvPh:'Nima yoqdi, nima yoqmadi', rvSend:'Yuborish',
@@ -570,7 +570,7 @@ const T = {
        street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
        geo:'My location', goods:'Dishes', delivCost:'calculated at checkout',
        free:'free', total:'Total', submit:'Place order', add:'Add to cart', sum:'UZS',
-       promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount',
+       promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount', promoSaving:'Promo discount',
        from:'from', min:n=>`Minimum order is ${n} UZS`,
        rvTitle:'Leave a review', rvSub:'Rate us and write a few words',
        rvPh:'What you liked, what you did not', rvSend:'Send',
@@ -852,7 +852,9 @@ let promoCode = '', promoDiscount = 0;
 
 function openCart(){
   if (!Object.keys(cart).length) return;
+  quoteData = null;
   renderLines(); paintSum();
+  refreshQuote();
   document.getElementById('screen').classList.add('on');
   document.getElementById('bar').classList.remove('on');
   document.getElementById('bar2').classList.add('on');
@@ -1144,28 +1146,53 @@ function deliveryFee(){
 
 function paintSum(){
   const list = Object.values(cart);
-  const goods = list.reduce((s,c) => s + c.qty * c.price, 0);
+  const rawGoods = list.reduce((s,c) => s + c.qty * c.price, 0);
+  const goods = (quoteData && quoteData.goods != null) ? quoteData.goods : rawGoods;
+  const promoDisc = (quoteData && quoteData.promo_discount) ? quoteData.promo_discount : promoDiscount;
+  const promoSaving = rawGoods - goods;  // сколько сэкономлено акциями
   const fee = deliveryFee();
 
-  const rows = [`<div><span class="mut">${t().goods}</span><span>${money(goods)} ${t().sum}</span></div>`];
+  const rows = [`<div><span class="mut">${t().goods}</span><span>${money(rawGoods)} ${t().sum}</span></div>`];
+  if (promoSaving > 0)
+    rows.push(`<div><span class="mut">${t().promoSaving}</span><span style="color:#8bd450">−${money(promoSaving)} ${t().sum}</span></div>`);
   if (mode === 'delivery')
     rows.push(`<div><span class="mut">${t().deliv}</span><span class="mut">${t().delivCost}</span></div>`);
   else
     rows.push(`<div><span class="mut">${t().pick}</span><span>${t().free}</span></div>`);
-  if (promoDiscount > 0)
-    rows.push(`<div><span class="mut">${t().discount}</span><span style="color:#8bd450">−${money(promoDiscount)} ${t().sum}</span></div>`);
-  const finalTotal = Math.max(0, goods + (fee||0) - promoDiscount);
+  if (promoDisc > 0)
+    rows.push(`<div><span class="mut">${t().discount}</span><span style="color:#8bd450">−${money(promoDisc)} ${t().sum}</span></div>`);
+  const finalTotal = Math.max(0, goods + (fee||0) - promoDisc);
   rows.push(`<div class="tot"><span>${t().total}</span><b>${money(finalTotal)} ${t().sum}</b></div>`);
   document.getElementById('sum').innerHTML = rows.join('');
   document.getElementById('sumTotal').textContent = money(finalTotal) + ' ' + t().sum;
 
-  const short = goods < MIN_ORDER;
+  const short = rawGoods < MIN_ORDER;
   const w = document.getElementById('warn');
   w.hidden = !short;
   if (short) w.textContent = t().min(money(MIN_ORDER));
   const btn = document.getElementById('submitBtn');
   btn.disabled = short;
   btn.style.opacity = short ? .45 : 1;
+}
+
+// серверный расчёт корзины (акции + промокод), чтобы клиент видел точные цифры
+let quoteData = null;
+async function refreshQuote(){
+  const items = Object.values(cart).map(c => ({
+    item_id: c.item_id, variant_id: c.variant_id, qty: c.qty, addon_id: c.addon_id || null
+  }));
+  if (!items.length){ quoteData = null; return; }
+  try {
+    const r = await fetch(API + '/api/quote', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({items, promo: promoCode || null})
+    });
+    if (!r.ok) throw new Error('http');
+    quoteData = await r.json();
+    paintSum();
+  } catch(e){
+    quoteData = null;  // при сбое показываем локальную сумму без скидок акций
+  }
 }
 
 let sending = false;
@@ -1219,6 +1246,7 @@ async function applyPromo(){
     msg.textContent = 'Не удалось проверить промокод';
   }
   redraw();
+  refreshQuote();
 }
 
 async function submitOrder(){
@@ -1339,7 +1367,7 @@ function paintHome(){
   $('hSub').textContent  = t().sub;
   $('mSub').textContent  = t().sub;
   $('hGo').textContent   = t().go;
-  $('tPromo').textContent  = t().promo;   $('iPromo').textContent  = t().soon;
+  $('tPromo').textContent  = t().promo;
   $('tCode').textContent   = t().code;    $('iCode').textContent   = t().soon;
   $('tOrders').textContent = t().orders;  $('iOrders').textContent = '';
   $('tLang').textContent   = t().lang;    $('iLang').textContent   = t().langName;
@@ -1490,6 +1518,63 @@ function closeOrders(){
   document.getElementById('ordersOverlay').style.display = 'none';
 }
 
+// заголовок/описание акции по текущему языку
+function promoTitle(p){
+  if (lang === 'en') return p.title_en || p.title_uz || p.title || '';
+  if (lang === 'uz') return p.title_uz || p.title || '';
+  return p.title || '';
+}
+function promoDesc(p){
+  if (lang === 'en') return p.description_en || p.description_uz || p.description || '';
+  if (lang === 'uz') return p.description_uz || p.description || '';
+  return p.description || '';
+}
+const PROMOS_T = {
+  ru: {title:'Акции', empty:'Пока нет активных акций', loading:'Загружаем…', err:'Не удалось загрузить'},
+  uz: {title:'Aksiyalar', empty:'Hozircha aksiyalar yo\'q', loading:'Yuklanmoqda…', err:'Yuklab bo\'lmadi'},
+  en: {title:'Promotions', empty:'No active promotions yet', loading:'Loading…', err:'Failed to load'},
+};
+function pt(){ return PROMOS_T[lang] || PROMOS_T.ru; }
+
+async function openPromos(){
+  const ov = document.getElementById('promosOverlay');
+  const list = document.getElementById('promosList');
+  document.getElementById('promosTitle').textContent = pt().title;
+  ov.style.display = 'block';
+  list.innerHTML = '<div style="text-align:center;color:#8a857c;padding:30px">' + pt().loading + '</div>';
+  tg?.HapticFeedback?.impactOccurred('light');
+  try {
+    const r = await fetch(API + '/api/promotions');
+    if (!r.ok) throw new Error('http');
+    const promos = await r.json();
+    if (!promos || !promos.length){
+      list.innerHTML = '<div style="text-align:center;color:#8a857c;padding:40px 20px">' + pt().empty + '</div>';
+      return;
+    }
+    list.innerHTML = '';
+    promos.forEach(p => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#1c1a17;border-radius:14px;overflow:hidden;margin:10px 0';
+      let html = '';
+      if (p.image_url){
+        html += '<img src="' + p.image_url + '" alt="" style="width:100%;display:block;max-height:200px;object-fit:cover">';
+      }
+      html += '<div style="padding:14px 16px">';
+      html += '<b style="color:#fff;font-size:16px">' + promoTitle(p) + '</b>';
+      const d = promoDesc(p);
+      if (d) html += '<div style="color:#a8a29a;font-size:13px;margin-top:6px;line-height:1.4">' + d + '</div>';
+      html += '</div>';
+      card.innerHTML = html;
+      list.appendChild(card);
+    });
+  } catch(e){
+    list.innerHTML = '<div style="text-align:center;color:#8a857c;padding:30px">' + pt().err + '</div>';
+  }
+}
+function closePromos(){
+  document.getElementById('promosOverlay').style.display = 'none';
+}
+
 function soon(){
   tg?.HapticFeedback?.notificationOccurred('warning');
   alert(t().soon.charAt(0).toUpperCase() + t().soon.slice(1));
@@ -1561,6 +1646,15 @@ document.querySelectorAll('section').forEach(s => io.observe(s));
       <button onclick="closeOrders()" style="background:none;border:0;color:#8a857c;font-size:24px;line-height:1;cursor:pointer">×</button>
     </div>
     <div id="ordersList" style="overflow-y:auto;padding:8px 14px 24px;flex:1"></div>
+  </div>
+</div>
+<div id="promosOverlay" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6)">
+  <div style="position:absolute;left:0;right:0;bottom:0;max-height:82%;background:#141210;border-radius:18px 18px 0 0;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #262320">
+      <b style="font-size:17px;color:#fff" id="promosTitle">Акции</b>
+      <button onclick="closePromos()" style="background:none;border:0;color:#8a857c;font-size:24px;line-height:1;cursor:pointer">×</button>
+    </div>
+    <div id="promosList" style="overflow-y:auto;padding:12px 14px 24px;flex:1"></div>
   </div>
 </div>
 <div id="promoOverlay" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6)">
