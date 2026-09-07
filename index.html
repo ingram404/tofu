@@ -620,8 +620,13 @@ MENU.order.forEach((cat, ci) => {
   chip.textContent = catName(cat);
   chip.dataset.cat = cat;
   chip.setAttribute('aria-current', ci === 0);
-  chip.onclick = () => document.getElementById('c'+ci)
-        .scrollIntoView({behavior:'smooth', block:'start'});
+  chip.onclick = () => {
+    const sec = document.getElementById('c'+ci);
+    const header = document.querySelector('header');
+    const offset = header ? header.offsetHeight : 0;
+    const y = sec.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({top:y, behavior:'smooth'});
+  };
   chipsEl.append(chip);
 
   const sec = document.createElement('section');
@@ -1284,7 +1289,6 @@ function toMenu(){
   $('home').classList.add('off');
   document.body.style.overflow = '';
   document.getElementById('menuBack').style.display = 'block';
-  document.getElementById('menuCart').style.display = 'block';
   updateCartBadge();
   tg?.BackButton?.show();
   paintBar();
