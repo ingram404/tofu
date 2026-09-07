@@ -64,7 +64,7 @@ header{
 }
 
 /* ── секции ──────────────────────────── */
-section{padding:26px 16px 6px;scroll-margin-top:112px}
+section{padding:26px 16px 6px;scroll-margin-top:var(--head-h,112px)}
 .head{display:flex;align-items:center;gap:11px;margin-bottom:16px}
 .head h2{
   margin:0;font:700 19px/1 Oswald,sans-serif;letter-spacing:.1em;
@@ -620,13 +620,8 @@ MENU.order.forEach((cat, ci) => {
   chip.textContent = catName(cat);
   chip.dataset.cat = cat;
   chip.setAttribute('aria-current', ci === 0);
-  chip.onclick = () => {
-    const sec = document.getElementById('c'+ci);
-    const header = document.querySelector('header');
-    const offset = header ? header.offsetHeight : 0;
-    const y = sec.getBoundingClientRect().top + window.pageYOffset - offset;
-    window.scrollTo({top:y, behavior:'smooth'});
-  };
+  chip.onclick = () => document.getElementById('c'+ci)
+        .scrollIntoView({behavior:'smooth', block:'start'});
   chipsEl.append(chip);
 
   const sec = document.createElement('section');
@@ -660,6 +655,15 @@ MENU.order.forEach((cat, ci) => {
   });
   menuEl.append(sec);
 });
+
+/* высота прилипшей шапки → scroll-margin секций (учитывает notch/safe-area) */
+function syncHeadHeight(){
+  const header = document.querySelector('header');
+  if (header) document.documentElement.style.setProperty('--head-h', header.offsetHeight + 'px');
+}
+syncHeadHeight();
+window.addEventListener('resize', syncHeadHeight);
+window.addEventListener('orientationchange', syncHeadHeight);
 
 /* ---------- кнопка / счётчик ---------- */
 function control(it){
@@ -1292,6 +1296,7 @@ function toMenu(){
   updateCartBadge();
   tg?.BackButton?.show();
   paintBar();
+  requestAnimationFrame(syncHeadHeight);
 }
 function toHome(){
   $('home').classList.remove('off');
