@@ -625,6 +625,7 @@ MENU.order.forEach((cat, ci) => {
     clearTimeout(spyTimer);
     spyTimer = setTimeout(() => { suppressSpy = false; }, 700);
     [...chipsEl.children].forEach(c => c.setAttribute('aria-current', c === chip));
+    chip.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
     document.getElementById('c'+ci).scrollIntoView({behavior:'smooth', block:'start'});
   };
   chipsEl.append(chip);
