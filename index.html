@@ -1395,9 +1395,9 @@ const ORDER_STATUS = {
   en: {new:'New', cooking:'Cooking', on_the_way:'On the way', delivered:'Delivered', canceled:'Canceled'}
 };
 const ORDER_TXT = {
-  ru: {title:'Мои заказы', empty:'У вас пока нет заказов', loading:'Загружаем…', err:'Не удалось загрузить. Попробуйте позже.', sum:'сум', deliv:'Доставка', pickup:'Самовывоз'},
-  uz: {title:'Mening buyurtmalarim', empty:'Sizda hali buyurtmalar yo\'q', loading:'Yuklanmoqda…', err:'Yuklab bo\'lmadi. Keyinroq urinib ko\'ring.', sum:'so\'m', deliv:'Yetkazish', pickup:'Olib ketish'},
-  en: {title:'My orders', empty:'You have no orders yet', loading:'Loading…', err:'Failed to load. Try later.', sum:'UZS', deliv:'Delivery', pickup:'Pickup'}
+  ru: {title:'Мои заказы', empty:'У вас пока нет заказов', loading:'Загружаем…', err:'Не удалось загрузить. Попробуйте позже.', sum:'сум', deliv:'Доставка', pickup:'Самовывоз', tapHint:'Нажмите, чтобы увидеть состав', loadingItems:'Загрузка…'},
+  uz: {title:'Mening buyurtmalarim', empty:'Sizda hali buyurtmalar yo\'q', loading:'Yuklanmoqda…', err:'Yuklab bo\'lmadi. Keyinroq urinib ko\'ring.', sum:'so\'m', deliv:'Yetkazish', pickup:'Olib ketish', tapHint:'Tarkibni ko\'rish uchun bosing', loadingItems:'Yuklanmoqda…'},
+  en: {title:'My orders', empty:'You have no orders yet', loading:'Loading…', err:'Failed to load. Try later.', sum:'UZS', deliv:'Delivery', pickup:'Pickup', tapHint:'Tap to see items', loadingItems:'Loading…'}
 };
 function ot(){ return ORDER_TXT[lang] || ORDER_TXT.ru; }
 function fmtSum(n){ return (n||0).toLocaleString('ru-RU'); }
@@ -1439,14 +1439,50 @@ function renderOrders(orders){
     const color = isCanceled ? '#c0392b' : (isDone ? '#7a7a7a' : '#b6e82a');
     const typeName = o.delivery_type === 'pickup' ? ot().pickup : ot().deliv;
     const card = document.createElement('div');
-    card.style.cssText = 'background:#1c1a17;border-radius:12px;padding:14px 16px;margin:8px 0';
+    card.style.cssText = 'background:#1c1a17;border-radius:12px;padding:14px 16px;margin:8px 0;cursor:pointer';
     card.innerHTML =
       '<div style="display:flex;justify-content:space-between;align-items:center">'
       + '<b style="color:#fff;font-size:15px">№' + o.id + '</b>'
       + '<span style="color:' + color + ';font-size:13px;font-weight:600">' + statusName + '</span>'
       + '</div>'
       + '<div style="color:#8a857c;font-size:12px;margin-top:4px">' + fmtDate(o.created_at) + ' · ' + typeName + '</div>'
+      + '<div class="ord-hint" style="color:#5f5a52;font-size:11px;margin-top:3px">' + ot().tapHint + '</div>'
+      + '<div class="ord-items" style="display:none;margin-top:10px"></div>'
       + '<div style="color:#fff;font-size:15px;font-weight:600;margin-top:8px">' + fmtSum(o.total) + ' ' + ot().sum + '</div>';
+
+    const itemsBox = card.querySelector('.ord-items');
+    const hint = card.querySelector('.ord-hint');
+    let loaded = false;
+    card.onclick = async () => {
+      // тумблер: если уже раскрыт — скрыть
+      if (itemsBox.style.display !== 'none'){
+        itemsBox.style.display = 'none';
+        if (hint) hint.style.display = 'block';
+        return;
+      }
+      itemsBox.style.display = 'block';
+      if (hint) hint.style.display = 'none';
+      if (loaded) return;
+      itemsBox.innerHTML = '<span style="color:#8a857c;font-size:13px">' + ot().loadingItems + '</span>';
+      try {
+        const r = await fetch(API + '/api/orders/' + o.id + '/items',
+          {headers:{'X-Init-Data': tg?.initData || ''}});
+        if (!r.ok) throw new Error(r.status);
+        const items = await r.json();
+        itemsBox.innerHTML = items.map(it => {
+          let line = '<div style="color:#d8d3c8;font-size:13px;padding:2px 0">• '
+            + it.name + ' × ' + it.qty + '</div>';
+          (it.addons || []).forEach(ad => {
+            line += '<div style="color:#8a857c;font-size:12px;padding:1px 0 1px 14px">+ '
+              + ad + '</div>';
+          });
+          return line;
+        }).join('');
+        loaded = true;
+      } catch(e){
+        itemsBox.innerHTML = '<span style="color:#8a857c;font-size:13px">' + ot().err + '</span>';
+      }
+    };
     list.appendChild(card);
   });
 }
