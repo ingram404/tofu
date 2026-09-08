@@ -620,6 +620,47 @@ function vl(v){
   return v.label;
 }
 
+// какие блюда участвуют в акции — помечаем огоньком 🔥
+let promoItems = new Set();     // id блюд
+let promoCats = new Set();      // категории
+async function loadPromoFlags(){
+  try {
+    const r = await fetch(API + '/api/promotions');
+    if (!r.ok) return;
+    const promos = await r.json();
+    promoItems = new Set();
+    promoCats = new Set();
+    promos.forEach(p => {
+      if (p.target_item_id) promoItems.add(Number(p.target_item_id));
+      if (p.target_category) promoCats.add(p.target_category);
+    });
+    applyPromoFlags();
+  } catch(e){}
+}
+function itemHasPromo(it){
+  return promoItems.has(Number(it.id)) || promoCats.has(it.cat);
+}
+function applyPromoFlags(){
+  document.querySelectorAll('.dish').forEach(d => {
+    const id = Number(d.dataset.id);
+    const it = MENU.items.find(x => Number(x.id) === id);
+    if (!it) return;
+    const h3 = d.querySelector('h3');
+    if (!h3) return;
+    const has = itemHasPromo(it);
+    const already = h3.querySelector('.fire');
+    if (has && !already){
+      const fire = document.createElement('span');
+      fire.className = 'fire';
+      fire.textContent = ' 🔥';
+      fire.title = 'Акция';
+      h3.appendChild(fire);
+    } else if (!has && already){
+      already.remove();
+    }
+  });
+}
+
 MENU.order.forEach((cat, ci) => {
   const list = MENU.items.filter(i => i.cat === cat);
   if (!list.length) return;
@@ -677,6 +718,7 @@ function syncHeadHeight(){
   if (header) document.documentElement.style.setProperty('--head-h', header.offsetHeight + 'px');
 }
 syncHeadHeight();
+loadPromoFlags();
 window.addEventListener('resize', syncHeadHeight);
 window.addEventListener('orientationchange', syncHeadHeight);
 
@@ -1368,7 +1410,7 @@ function paintHome(){
   $('mSub').textContent  = t().sub;
   $('hGo').textContent   = t().go;
   $('tPromo').textContent  = t().promo;
-  $('tCode').textContent   = t().code;    $('iCode').textContent   = t().soon;
+  $('tCode').textContent   = t().code;
   $('tOrders').textContent = t().orders;  $('iOrders').textContent = '';
   $('tLang').textContent   = t().lang;    $('iLang').textContent   = t().langName;
   $('tTheme').textContent  = t().theme;
@@ -1530,9 +1572,9 @@ function promoDesc(p){
   return p.description || '';
 }
 const PROMOS_T = {
-  ru: {title:'Акции', empty:'Пока нет активных акций', loading:'Загружаем…', err:'Не удалось загрузить'},
-  uz: {title:'Aksiyalar', empty:'Hozircha aksiyalar yo\'q', loading:'Yuklanmoqda…', err:'Yuklab bo\'lmadi'},
-  en: {title:'Promotions', empty:'No active promotions yet', loading:'Loading…', err:'Failed to load'},
+  ru: {title:'Акции', empty:'Пока нет активных акций', loading:'Загружаем…', err:'Не удалось загрузить', order:'Заказать'},
+  uz: {title:'Aksiyalar', empty:'Hozircha aksiyalar yo\'q', loading:'Yuklanmoqda…', err:'Yuklab bo\'lmadi', order:'Buyurtma'},
+  en: {title:'Promotions', empty:'No active promotions yet', loading:'Loading…', err:'Failed to load', order:'Order'},
 };
 function pt(){ return PROMOS_T[lang] || PROMOS_T.ru; }
 
@@ -1565,6 +1607,27 @@ async function openPromos(){
       if (d) html += '<div style="color:#a8a29a;font-size:13px;margin-top:6px;line-height:1.4">' + d + '</div>';
       html += '</div>';
       card.innerHTML = html;
+
+      // кнопка «Заказать» — если акция на конкретное блюдо
+      const targetItem = p.target_item_id
+        ? MENU.items.find(x => Number(x.id) === Number(p.target_item_id))
+        : null;
+      if (targetItem){
+        const btn = document.createElement('button');
+        btn.textContent = pt().order;
+        btn.style.cssText = 'margin:0 16px 14px;padding:11px 0;width:calc(100% - 32px);background:var(--lime);color:#0E0E0E;border:0;border-radius:11px;font:700 14px Inter,sans-serif;cursor:pointer';
+        btn.onclick = () => {
+          closePromos();
+          if (targetItem.variants && targetItem.variants.length){
+            openSheet(targetItem);        // есть варианты — открываем шторку
+          } else {
+            toMenu();                     // без вариантов — открываем блюдо в меню
+            const el = document.querySelector('.dish[data-id="' + targetItem.id + '"]');
+            if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+          }
+        };
+        card.appendChild(btn);
+      }
       list.appendChild(card);
     });
   } catch(e){
