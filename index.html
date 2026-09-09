@@ -530,7 +530,7 @@ const T = {
        street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
        geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении',
        free:'бесплатно', total:'Итого', submit:'Оформить заказ', add:'В корзину', sum:'сум',
-       promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка', promoSaving:'Скидка по акции',
+       promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка', promoSaving:'Скидка по акции', bgHint:'Можете добавить', bgFree:'бесплатно',
        from:'от', min:n=>`Минимальная сумма заказа — ${n} сум`,
        rvTitle:'Оставить отзыв', rvSub:'Оцените и напишите пару слов — нам это помогает',
        rvPh:'Что понравилось, что нет', rvSend:'Отправить',
@@ -550,7 +550,7 @@ const T = {
        street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
        geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi',
        free:'bepul', total:'Jami', submit:'Buyurtma berish', add:'Savatga', sum:'so\'m',
-       promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma', promoSaving:'Aksiya chegirmasi',
+       promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma', promoSaving:'Aksiya chegirmasi', bgHint:'Qo\'shishingiz mumkin', bgFree:'bepul',
        from:'dan', min:n=>`Minimal buyurtma summasi — ${n} so'm`,
        rvTitle:'Fikr qoldirish', rvSub:'Baholang va bir necha so\'z yozing',
        rvPh:'Nima yoqdi, nima yoqmadi', rvSend:'Yuborish',
@@ -570,7 +570,7 @@ const T = {
        street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
        geo:'My location', goods:'Dishes', delivCost:'calculated at checkout',
        free:'free', total:'Total', submit:'Place order', add:'Add to cart', sum:'UZS',
-       promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount', promoSaving:'Promo discount',
+       promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount', promoSaving:'Promo discount', bgHint:'You can add', bgFree:'free',
        from:'from', min:n=>`Minimum order is ${n} UZS`,
        rvTitle:'Leave a review', rvSub:'Rate us and write a few words',
        rvPh:'What you liked, what you did not', rvSend:'Send',
@@ -1195,6 +1195,20 @@ function paintSum(){
   const fee = deliveryFee();
 
   const rows = [`<div><span class="mut">${t().goods}</span><span>${money(rawGoods)} ${t().sum}</span></div>`];
+
+  // подсказка buy_get: «можете добавить X бесплатно/со скидкой»
+  if (quoteData && quoteData.buy_get_hints){
+    quoteData.buy_get_hints.forEach(h => {
+      if (h.qty_applied < h.qty_eligible){
+        const left = h.qty_eligible - h.qty_applied;
+        const label = h.gift_percent === 100
+          ? `${h.gift_name} × ${left} ${t().bgFree}`
+          : `${h.gift_name} × ${left} −${h.gift_percent}%`;
+        rows.push(`<div style="background:rgba(139,212,80,.12);border:1px dashed #8bd450;border-radius:8px;padding:8px 10px;margin:4px 0;color:#8bd450;font-size:12.5px">🎁 ${t().bgHint}: ${label}</div>`);
+      }
+    });
+  }
+
   if (promoSaving > 0)
     rows.push(`<div><span class="mut">${t().promoSaving}</span><span style="color:#8bd450">−${money(promoSaving)} ${t().sum}</span></div>`);
   if (mode === 'delivery')
