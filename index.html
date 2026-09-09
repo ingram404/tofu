@@ -1213,8 +1213,12 @@ function paintSum(){
 
   if (promoSaving > 0)
     rows.push(`<div><span class="mut">${t().promoSaving}</span><span style="color:#8bd450">−${money(promoSaving)} ${t().sum}</span></div>`);
-  if (mode === 'delivery')
-    rows.push(`<div><span class="mut">${t().deliv}</span><span class="mut">${t().delivCost}</span></div>`);
+  if (mode === 'delivery'){
+    if (quoteData && quoteData.free_delivery)
+      rows.push(`<div><span class="mut">${t().deliv}</span><span style="color:#8bd450">${t().free}</span></div>`);
+    else
+      rows.push(`<div><span class="mut">${t().deliv}</span><span class="mut">${t().delivCost}</span></div>`);
+  }
   else
     rows.push(`<div><span class="mut">${t().pick}</span><span>${t().free}</span></div>`);
   if (promoDisc > 0)
@@ -1243,7 +1247,7 @@ async function refreshQuote(){
   try {
     const r = await fetch(API + '/api/quote', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({items, promo: promoCode || null})
+      body: JSON.stringify({items, promo: promoCode || null, mode: mode})
     });
     if (!r.ok) throw new Error('http');
     quoteData = await r.json();
@@ -1286,7 +1290,7 @@ async function applyPromo(){
     const r = await fetch(API + '/api/promo/check', {
       method: 'POST',
       headers: {'Content-Type':'application/json','X-Init-Data': tg?.initData || ''},
-      body: JSON.stringify({code: code, sum: goods})
+      body: JSON.stringify({code: code, sum: goods, mode: mode})
     });
     const res = await r.json();
     if (res.ok){
