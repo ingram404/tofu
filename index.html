@@ -632,6 +632,8 @@ async function loadPromoFlags(){
     promoCats = new Set();
     promos.forEach(p => {
       if (p.target_item_id) promoItems.add(Number(p.target_item_id));
+      if (p.trigger_item_id) promoItems.add(Number(p.trigger_item_id));
+      if (p.gift_item_id && p.type === 'buy_get') promoItems.add(Number(p.gift_item_id));
       if (p.target_category) promoCats.add(p.target_category);
     });
     applyPromoFlags();
@@ -1622,9 +1624,11 @@ async function openPromos(){
       html += '</div>';
       card.innerHTML = html;
 
-      // кнопка «Заказать» — если акция на конкретное блюдо
-      const targetItem = p.target_item_id
-        ? MENU.items.find(x => Number(x.id) === Number(p.target_item_id))
+      // кнопка «Заказать» — если акция ведёт к конкретному блюду
+      // (обычная акция → target_item_id, buy_get → trigger_item_id)
+      const targetId = p.target_item_id || p.trigger_item_id;
+      const targetItem = targetId
+        ? MENU.items.find(x => Number(x.id) === Number(targetId))
         : null;
       if (targetItem){
         const btn = document.createElement('button');
@@ -1633,12 +1637,16 @@ async function openPromos(){
         btn.onclick = () => {
           closePromos();
           if (targetItem.variants && targetItem.variants.length){
-            openSheet(targetItem);        // есть варианты — открываем шторку
-          } else {
-            toMenu();                     // без вариантов — открываем блюдо в меню
-            const el = document.querySelector('.dish[data-id="' + targetItem.id + '"]');
-            if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+            openSheet(targetItem);        // есть варианты — клиент выбирает
+            return;
           }
+          // без вариантов — кладём в корзину
+          const qty = (p.type === 'buy_get' && p.trigger_qty) ? Number(p.trigger_qty) : 1;
+          bump('i'+targetItem.id, nm(targetItem), targetItem.price, qty, targetItem.id,
+               {item_id:targetItem.id, variant_id:null});
+          toMenu();
+          const el = document.querySelector('.dish[data-id="' + targetItem.id + '"]');
+          if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
         };
         card.appendChild(btn);
       }
