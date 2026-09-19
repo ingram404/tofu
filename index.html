@@ -956,6 +956,7 @@ function setMode(m){
   document.getElementById('pickBlock').hidden  = m !== 'pickup';
   if (m === 'delivery') setTimeout(initMap, 60);
   paintSum();
+  refreshQuote();
 }
 function setSpot(i){
   spot = i;
@@ -976,7 +977,7 @@ function initMap(){
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution:'© OpenStreetMap', maxZoom:19
   }).addTo(map);
-  map.on('moveend', () => { if (suppressMove) return; coords = map.getCenter(); askAddress(); });
+  map.on('moveend', () => { if (suppressMove) return; coords = map.getCenter(); askAddress(); quoteSoon(); });
   coords = map.getCenter();
 }
 let addrTimer = null, addrTyped = false;
@@ -1194,7 +1195,11 @@ function paintSum(){
   const goods = (quoteData && quoteData.goods != null) ? quoteData.goods : rawGoods;
   const promoDisc = (quoteData && quoteData.promo_discount) ? quoteData.promo_discount : promoDiscount;
   const promoSaving = rawGoods - goods;  // сколько сэкономлено акциями
-  const fee = deliveryFee();
+  // цена доставки от сервера (Яндекс): число | 0 (самовывоз) | null (ещё считается/нет адреса)
+  let fee;
+  if (mode === 'pickup') fee = 0;
+  else if (quoteData && quoteData.delivery_fee !== undefined) fee = quoteData.delivery_fee;
+  else fee = null;
 
   const rows = [`<div><span class="mut">${t().goods}</span><span>${money(rawGoods)} ${t().sum}</span></div>`];
 
@@ -1216,8 +1221,10 @@ function paintSum(){
   if (mode === 'delivery'){
     if (quoteData && quoteData.free_delivery)
       rows.push(`<div><span class="mut">${t().deliv}</span><span style="color:#8bd450">${t().free}</span></div>`);
-    else
+    else if (fee === null || fee === undefined)
       rows.push(`<div><span class="mut">${t().deliv}</span><span class="mut">${t().delivCost}</span></div>`);
+    else
+      rows.push(`<div><span class="mut">${t().deliv}</span><span>${money(fee)} ${t().sum}</span></div>`);
   }
   else
     rows.push(`<div><span class="mut">${t().pick}</span><span>${t().free}</span></div>`);
@@ -1247,7 +1254,8 @@ async function refreshQuote(){
   try {
     const r = await fetch(API + '/api/quote', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({items, promo: promoCode || null, mode: mode})
+      body: JSON.stringify({items, promo: promoCode || null, mode: mode,
+        address: {lat: coords?.lat, lng: coords?.lng}})
     });
     if (!r.ok) throw new Error('http');
     quoteData = await r.json();
@@ -1255,6 +1263,13 @@ async function refreshQuote(){
   } catch(e){
     quoteData = null;  // при сбое показываем локальную сумму без скидок акций
   }
+}
+
+// пересчёт корзины с задержкой — чтобы не дёргать сервер на каждое микро-движение карты
+let quoteTimer = null;
+function quoteSoon(){
+  clearTimeout(quoteTimer);
+  quoteTimer = setTimeout(refreshQuote, 600);
 }
 
 let sending = false;
