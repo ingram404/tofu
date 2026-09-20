@@ -1045,6 +1045,7 @@ async function chooseSuggest(text, box, inp){
       map.setView([lat, lng], 17);
       coords = {lat: lat, lng: lng};
       setTimeout(() => { suppressMove = false; }, 600);
+      quoteSoon();                       // пересчитать доставку по выбранному адресу
     }
   } catch(e){ /* координаты не критичны — адрес уже введён */ }
 }
@@ -1124,6 +1125,7 @@ function locateMe(){
     coords = {lat: lat, lng: lng};
     askAddress();                        // адрес именно по GPS-точке
     setTimeout(() => { suppressMove = false; }, 600);
+    quoteSoon();                         // пересчитать доставку по новой точке
   };
 
   // внутри Telegram? скрипт грузится и в обычном браузере, но platform там 'unknown'
