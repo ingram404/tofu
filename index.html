@@ -528,7 +528,7 @@ const T = {
        whereFrom:'Откуда забрать', whereTo:'Куда доставить', pay:'Оплата',
        cash:'Наличными', card:'Картой', toCourier:'Курьеру при получении',
        street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
-       geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении',
+       geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении', noCourier:'нет свободных курьеров',
        free:'бесплатно', total:'Итого', submit:'Оформить заказ', add:'В корзину', sum:'сум',
        promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка', promoSaving:'Скидка по акции', bgHint:'Можете добавить', bgFree:'бесплатно',
        from:'от', min:n=>`Минимальная сумма заказа — ${n} сум`,
@@ -548,7 +548,7 @@ const T = {
        whereFrom:'Qayerdan olish', whereTo:'Qayerga yetkazish', pay:'To\'lov',
        cash:'Naqd pul', card:'Karta', toCourier:'Kuryerga olganda',
        street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
-       geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi',
+       geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi', noCourier:'bo\'sh kuryerlar yo\'q',
        free:'bepul', total:'Jami', submit:'Buyurtma berish', add:'Savatga', sum:'so\'m',
        promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma', promoSaving:'Aksiya chegirmasi', bgHint:'Qo\'shishingiz mumkin', bgFree:'bepul',
        from:'dan', min:n=>`Minimal buyurtma summasi — ${n} so'm`,
@@ -568,7 +568,7 @@ const T = {
        whereFrom:'Pickup point', whereTo:'Delivery address', pay:'Payment',
        cash:'Cash', card:'Card', toCourier:'To the courier on delivery',
        street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
-       geo:'My location', goods:'Dishes', delivCost:'calculated at checkout',
+       geo:'My location', goods:'Dishes', delivCost:'calculated at checkout', noCourier:'no couriers available',
        free:'free', total:'Total', submit:'Place order', add:'Add to cart', sum:'UZS',
        promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount', promoSaving:'Promo discount', bgHint:'You can add', bgFree:'free',
        from:'from', min:n=>`Minimum order is ${n} UZS`,
@@ -1221,6 +1221,8 @@ function paintSum(){
   if (mode === 'delivery'){
     if (quoteData && quoteData.free_delivery)
       rows.push(`<div><span class="mut">${t().deliv}</span><span style="color:#8bd450">${t().free}</span></div>`);
+    else if (quoteData && quoteData.no_courier)
+      rows.push(`<div><span class="mut">${t().deliv}</span><span style="color:#e0a020">${t().noCourier}</span></div>`);
     else if (fee === null || fee === undefined)
       rows.push(`<div><span class="mut">${t().deliv}</span><span class="mut">${t().delivCost}</span></div>`);
     else
