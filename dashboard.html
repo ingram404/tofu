@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOFU · Дашборд заказов</title>
+<style>
+  :root{
+    --bg:#fcfcfb; --surface:#ffffff; --ink:#1a1a19; --ink2:#55534e; --muted:#8a8781;
+    --line:#ececE8; --brand:#E8502A; --c2:#2C7BE5; --c3:#00A37A; --c4:#B5820A;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141413; --surface:#1f1f1d; --ink:#f2f0ec; --ink2:#c3c0b8; --muted:#8f8c84;
+      --line:#2e2e2b; --brand:#F2734F; --c2:#5B9BF0; --c3:#2CBE97; --c4:#D9A93C;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141413; --surface:#1f1f1d; --ink:#f2f0ec; --ink2:#c3c0b8; --muted:#8f8c84;
+    --line:#2e2e2b; --brand:#F2734F; --c2:#5B9BF0; --c3:#2CBE97; --c4:#D9A93C;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.45;padding:24px 16px 64px}
+  .wrap{max-width:1000px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  h1 .dot{color:var(--brand)}
+  .btn{background:var(--surface);border:1px solid var(--line);color:var(--ink2);border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;gap:7px}
+  .btn:hover{color:var(--ink)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .sub{color:var(--muted);font-size:13.5px;margin-bottom:20px}
+  .note{background:color-mix(in srgb,var(--brand) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--brand) 25%,var(--line));
+    color:var(--ink2);font-size:13px;border-radius:12px;padding:11px 14px;margin-bottom:24px}
+  .note b{color:var(--ink)}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 15px;box-shadow:var(--shadow)}
+  .kpi .l{font-size:12px;color:var(--muted);font-weight:500}
+  .kpi .v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+  .kpi .v small{font-size:13px;font-weight:600;color:var(--ink2)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow)}
+  .card.full{grid-column:1 / -1}
+  .card h2{font-size:15px;font-weight:650}
+  .card .csub{font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:14px}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .row .name{flex:0 0 138px;font-size:12.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-track{flex:1;height:20px;background:color-mix(in srgb,var(--ink) 5%,transparent);border-radius:5px;position:relative;overflow:hidden}
+  .bar{height:100%;border-radius:5px;min-width:2px}
+  .row .val{flex:0 0 auto;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;text-align:right;min-width:70px}
+  .chart{display:flex;align-items:flex-end;gap:6px;height:180px;padding-top:20px;position:relative}
+  .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;position:relative}
+  .col .cbar{width:100%;max-width:34px;border-radius:5px 5px 0 0;background:var(--brand);min-height:2px;transition:opacity .15s}
+  .col:hover .cbar{opacity:.8}
+  .col .clab{font-size:10.5px;color:var(--muted);white-space:nowrap}
+  .col .cval{font-size:10.5px;color:var(--ink2);font-variant-numeric:tabular-nums;font-weight:600}
+  .col .tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+    font-size:11px;padding:5px 8px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;font-variant-numeric:tabular-nums}
+  .col:hover .tip{opacity:1}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:2px}
+  .legend .li{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2)}
+  .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:8px;border-bottom:1px solid var(--line);color:var(--ink2);font-variant-numeric:tabular-nums}
+  td.name{color:var(--ink);font-weight:500}
+  tr:last-child td{border-bottom:none}
+  footer{color:var(--muted);font-size:11.5px;margin-top:28px;text-align:center;line-height:1.6}
+  #state{padding:60px 20px;text-align:center;color:var(--muted);font-size:14px}
+  .spinner{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--brand);border-radius:50%;
+    animation:spin .8s linear infinite;margin:0 auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{color:var(--brand)}
+  @media (max-width:760px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:1fr}
+    .row .name{flex-basis:100px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>TOFU<span class="dot">·</span> Дашборд заказов</h1>
+    <button class="btn" id="refresh" onclick="load()">↻ Обновить</button>
+  </header>
+  <div class="sub" id="period">Загрузка…</div>
+
+  <div class="note" id="testnote" style="display:none">
+    <b>⚠️ Данные пока тестовые.</b> Это заказы за период разработки. Дашборд живой — при обновлении подтягивает свежие цифры из базы бота. Как пойдут реальные заказы, картина станет боевой.
+  </div>
+
+  <div id="state"><div class="spinner"></div>Загружаю данные…</div>
+
+  <div id="content" style="display:none">
+    <div class="kpis" id="kpis"></div>
+    <div class="grid">
+      <div class="card full"><h2>Выручка по дням</h2><div class="csub">Столбцы — выручка (сум); подпись сверху — средний чек за день</div><div class="chart" id="byday"></div></div>
+      <div class="card"><h2>Топ блюд</h2><div class="csub">По количеству проданных порций</div><div id="topitems"></div></div>
+      <div class="card"><h2>Выручка по категориям</h2><div class="csub">Какие разделы меню приносят больше</div><div id="bycat"></div></div>
+      <div class="card"><h2>Способ оплаты</h2><div class="csub">Доля заказов</div><div id="pay" style="margin-top:4px"></div></div>
+      <div class="card"><h2>Заказы по часам</h2><div class="csub">Когда чаще заказывают (время Ташкента)</div><div class="chart" id="byhour" style="height:150px"></div></div>
+      <div class="card"><h2>Доставка / самовывоз</h2><div class="csub">Как забирают заказ</div><div id="dtype" style="margin-top:4px"></div></div>
+      <div class="card"><h2>Статусы заказов</h2><div class="csub">Где сейчас заказы</div><div id="status" style="margin-top:4px"></div></div>
+    </div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const API = "https://tofu-server-zq6z.onrender.com/api/stats?key=K7zdG7GKlhFLcFds3ium9g";
+const money = n => Math.round(n).toLocaleString('ru-RU').replace(/,/g,' ');
+const fmtK = n => n>=1000 ? Math.round(n/1000).toLocaleString('ru-RU')+'k' : n;
+
+const PAY_LABEL={cash:"Наличные",card_on_delivery:"Картой курьеру",payme:"Payme",click:"Click"};
+const ST_LABEL={new:"Новые",cooking:"Готовятся",on_the_way:"В пути",delivered:"Доставлены",canceled:"Отменены",awaiting_payment:"Ждут оплаты"};
+const DT_LABEL={delivery:"Доставка",pickup:"Самовывоз"};
+const PALETTE=["var(--brand)","var(--c2)","var(--c3)","var(--c4)"];
+
+async function load(){
+  const btn=document.getElementById('refresh'); btn.disabled=true;
+  document.getElementById('state').style.display='block';
+  document.getElementById('state').innerHTML='<div class="spinner"></div>Загружаю данные…';
+  document.getElementById('content').style.display='none';
+  try{
+    const r=await fetch(API,{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    render(d);
+    document.getElementById('state').style.display='none';
+    document.getElementById('content').style.display='block';
+    document.getElementById('testnote').style.display='block';
+  }catch(e){
+    document.getElementById('state').innerHTML=
+      '<div class="err">Не удалось загрузить данные.</div><div style="margin-top:8px;font-size:13px">'+
+      'Сервер мог «уснуть» (бесплатный Render засыпает без активности) — подожди 30–60 сек и нажми «Обновить».</div>';
+  }
+  btn.disabled=false;
+}
+
+function render(d){
+  document.getElementById('period').textContent = "Обновлено: "+d.generated_at+" (время Ташкента)";
+  document.getElementById('foot').innerHTML =
+    "TOFU · данные из базы бота напрямую · живой дашборд<br>Нажми «Обновить», чтобы подтянуть свежие заказы.";
+
+  // KPI
+  const k=d.kpi;
+  document.getElementById('kpis').innerHTML=[
+    {l:"Заказов",v:k.orders},
+    {l:"Выручка",v:money(k.revenue),s:"сум"},
+    {l:"Средний чек",v:money(k.avg),s:"сум"},
+    {l:"Клиентов",v:k.customers}
+  ].map(x=>`<div class="kpi"><div class="l">${x.l}</div><div class="v">${x.v}${x.s?` <small>${x.s}</small>`:''}</div></div>`).join('');
+
+  // byday
+  colChart('byday', d.byday, x=>x.s, x=>money(x.avg),
+    x=>`${x.d}: ${money(x.s)} сум · ${x.c} зак. · ср.чек ${money(x.avg)}`, x=>x.d, 120);
+
+  // byhour
+  colChart('byhour', d.byhour, x=>x.c, x=>x.c,
+    x=>`${x.h}:00 — ${x.c} зак.`, x=>x.h, 100);
+
+  // top items
+  hbars('topitems', d.top||[], x=>x.qty, x=>x.qty+' шт', x=>x.name, 'var(--brand)');
+  // categories
+  hbars('bycat', d.cat||[], x=>x.rev, x=>fmtK(x.rev), x=>x.name, 'var(--c4)');
+
+  // splits
+  split('pay', (d.pay||[]).map(x=>({k:PAY_LABEL[x.k]||x.k,c:x.c})));
+  split('dtype', (d.dtype||[]).map(x=>({k:DT_LABEL[x.k]||x.k,c:x.c})));
+  split('status', (d.status||[]).map(x=>({k:ST_LABEL[x.k]||x.k,c:x.c})));
+}
+
+function colChart(id, items, valf, labf, tipf, xf, maxh){
+  const max=Math.max(1,...items.map(valf));
+  document.getElementById(id).innerHTML=items.map(x=>{
+    const h=Math.round(valf(x)/max*maxh)+2;
+    return `<div class="col"><div class="tip">${tipf(x)}</div><div class="cval">${labf(x)}</div>`+
+      `<div class="cbar" style="height:${h}px"></div><div class="clab">${xf(x)}</div></div>`;
+  }).join('');
+}
+function hbars(id, items, valf, labf, namef, color){
+  const max=Math.max(1,...items.map(valf));
+  document.getElementById(id).innerHTML=items.map(x=>{
+    const w=Math.round(valf(x)/max*100);
+    return `<div class="row"><div class="name" title="${namef(x)}">${namef(x)}</div>`+
+      `<div class="bar-track"><div class="bar" style="width:${w}%;background:${color}"></div></div>`+
+      `<div class="val">${labf(x)}</div></div>`;
+  }).join('');
+}
+function split(id, items){
+  const tot=items.reduce((a,b)=>a+b.c,0)||1;
+  const bar=items.filter(x=>x.c>0).map((x,i)=>`<div style="width:${x.c/tot*100}%;background:${PALETTE[i%4]}"></div>`).join('');
+  const leg=items.map((x,i)=>`<div class="li"><span class="sw" style="background:${PALETTE[i%4]}"></span>${x.k} — ${x.c} (${Math.round(x.c/tot*100)}%)</div>`).join('');
+  document.getElementById(id).innerHTML=`<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;gap:2px;margin-bottom:12px">${bar}</div><div class="legend">${leg}</div>`;
+}
+
+load();
+</script>
+</body>
+</html>
