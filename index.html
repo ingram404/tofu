@@ -476,6 +476,12 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
     <button class="spot" aria-pressed="false" onclick="setPay('card')" id="pCard">
       <span><b data-i="card">Картой</b><span data-i="toCourier">Курьеру при получении</span></span><i></i>
     </button>
+    <button class="spot" aria-pressed="false" onclick="setPay('click')" id="pClick" hidden>
+      <span><b>Click</b><span data-i="online">Онлайн-оплата</span></span><i></i>
+    </button>
+    <button class="spot" aria-pressed="false" onclick="setPay('payme')" id="pPayme" hidden>
+      <span><b>Payme</b><span data-i="online">Онлайн-оплата</span></span><i></i>
+    </button>
   </div>
 
   <div class="block">
@@ -526,7 +532,7 @@ const T = {
        cart:'Корзина', empty:'Корзина пуста', order:'Заказ', yours:'Ваш заказ',
        howGet:'Как получить', deliv:'Доставка', pick:'Самовывоз',
        whereFrom:'Откуда забрать', whereTo:'Куда доставить', pay:'Оплата',
-       cash:'Наличными', card:'Картой', toCourier:'Курьеру при получении',
+       cash:'Наличными', card:'Картой', toCourier:'Курьеру при получении', online:'Онлайн-оплата',
        street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
        geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении', noCourier:'нет свободных курьеров',
        free:'бесплатно', total:'Итого', submit:'Оформить заказ', add:'В корзину', sum:'сум',
@@ -546,7 +552,7 @@ const T = {
        cart:'Savat', empty:'Savat bo\'sh', order:'Buyurtma', yours:'Sizning buyurtmangiz',
        howGet:'Qanday olish', deliv:'Yetkazib berish', pick:'O\'zi olib ketish',
        whereFrom:'Qayerdan olish', whereTo:'Qayerga yetkazish', pay:'To\'lov',
-       cash:'Naqd pul', card:'Karta', toCourier:'Kuryerga olganda',
+       cash:'Naqd pul', card:'Karta', toCourier:'Kuryerga olganda', online:'Onlayn to\'lov',
        street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
        geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi', noCourier:'bo\'sh kuryerlar yo\'q',
        free:'bepul', total:'Jami', submit:'Buyurtma berish', add:'Savatga', sum:'so\'m',
@@ -566,7 +572,7 @@ const T = {
        cart:'Cart', empty:'Cart is empty', order:'Order', yours:'Your order',
        howGet:'How to get it', deliv:'Delivery', pick:'Pickup',
        whereFrom:'Pickup point', whereTo:'Delivery address', pay:'Payment',
-       cash:'Cash', card:'Card', toCourier:'To the courier on delivery',
+       cash:'Cash', card:'Card', toCourier:'To the courier on delivery', online:'Online payment',
        street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
        geo:'My location', goods:'Dishes', delivCost:'calculated at checkout', noCourier:'no couriers available',
        free:'free', total:'Total', submit:'Place order', add:'Add to cart', sum:'UZS',
@@ -965,8 +971,20 @@ function setSpot(i){
 }
 function setPay(p){
   pay = p;
-  document.getElementById('pCash').setAttribute('aria-pressed', p === 'cash');
-  document.getElementById('pCard').setAttribute('aria-pressed', p === 'card');
+  const ids = {cash:'pCash', card:'pCard', click:'pClick', payme:'pPayme'};
+  for (const k in ids){
+    const el = document.getElementById(ids[k]);
+    if (el) el.setAttribute('aria-pressed', p === k);
+  }
+}
+async function loadPayMethods(){
+  try {
+    const r = await fetch(API + '/api/payments/available');
+    if (!r.ok) return;
+    const a = await r.json();
+    if (a.click) document.getElementById('pClick').hidden = false;
+    if (a.payme) document.getElementById('pPayme').hidden = false;
+  } catch(e){}
 }
 
 /* ---- карта ---- */
@@ -1344,7 +1362,7 @@ async function submitOrder(){
       item_id: c.item_id, variant_id: c.variant_id, qty: c.qty, addon_id: c.addon_id || null
     })),
     mode,
-    pay: pay === 'card' ? 'card_on_delivery' : 'cash',
+    pay: {cash:'cash', card:'card_on_delivery', click:'click', payme:'payme'}[pay],
     spot: mode === 'pickup' ? ['compass','riviera'][spot] : null,
     address: mode === 'delivery' ? {
       street: $('addr').value.trim(),
@@ -1376,7 +1394,15 @@ async function submitOrder(){
 
     const res = await r.json();
     for (const k in cart) delete cart[k];
-    redraw(); closeCart(); toHome();
+    redraw(); closeCart();
+    if (res.pay_url){
+      // онлайн-оплата: отправляем клиента на защищённую страницу платёжки
+      if (tg?.openLink) tg.openLink(res.pay_url);
+      else window.open(res.pay_url, '_blank');
+      toHome();
+      return;
+    }
+    toHome();
     tg?.HapticFeedback?.notificationOccurred('success');
     alert(t().done(res.order_id));
 
@@ -1731,7 +1757,7 @@ function paintStatic(){
   $('note').placeholder = t().note;
 }
 
-paintHome(); paintStatic(); loadMe(); initAddrSuggest();
+paintHome(); paintStatic(); loadMe(); loadPayMethods(); initAddrSuggest();
 document.body.style.overflow = 'hidden';   // стартовый экран открыт
 
 /* подсветка активной категории при скролле */
