@@ -410,7 +410,7 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
     <em>💬</em><span id="tReview">Оставить отзыв</span><i>›</i>
   </button>
 
-  <p class="hint" id="hHint"><a href="privacy.html" target="_blank" style="color:var(--mute);text-decoration:underline">Политика конфиденциальности и условия</a></p>
+  <p class="hint" id="hHint"><span onclick="openPrivacy()" style="color:var(--mute);text-decoration:underline;cursor:pointer">Политика конфиденциальности и условия</span></p>
 </div>
 
 <main id="menu"></main>
@@ -978,6 +978,11 @@ function setPay(p){
     if (el) el.setAttribute('aria-pressed', p === k);
   }
 }
+function openPrivacy(){
+  const url = new URL('privacy.html', location.href).href;
+  if (window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url);
+  else window.open(url, '_blank');
+}
 async function loadPayMethods(){
   try {
     const r = await fetch(API + '/api/payments/available');
@@ -1485,7 +1490,7 @@ function paintHome(){
   const logo = theme === 'dark' ? 'logo-dark.png' : 'logo-light.png';
   $('hLogo').src = logo; $('mLogo').src = logo;
   $('tReview').textContent = t().review;
-  $('hHint').innerHTML = '<a href="privacy.html" target="_blank" style="color:var(--mute);text-decoration:underline">'+t().hint+'</a>';
+  $('hHint').innerHTML = '<span onclick="openPrivacy()" style="color:var(--mute);text-decoration:underline;cursor:pointer">'+t().hint+'</span>';
   $('rvTitle').textContent = t().rvTitle;
   $('rvSub').textContent   = t().rvSub;
   $('rvText').placeholder  = t().rvPh;
