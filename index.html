@@ -237,6 +237,7 @@ section{padding:26px 16px 6px;scroll-margin-top:var(--head-h,112px)}
   padding:14px 15px;margin-bottom:8px;color:var(--paper);cursor:pointer;text-align:left;
 }
 .spot[aria-pressed="true"]{border-color:var(--lime)}
+.spot[hidden]{display:none}
 .spot b{display:block;font:600 15px Inter,sans-serif;margin-bottom:2px}
 .spot span{font-size:12px;color:var(--mute)}
 .spot i{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto}
@@ -409,7 +410,7 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
     <em>💬</em><span id="tReview">Оставить отзыв</span><i>›</i>
   </button>
 
-  <p class="hint" id="hHint">Профиль, акции и история заказов появятся после подключения сервера</p>
+  <p class="hint" id="hHint"><a href="privacy.html" target="_blank" style="color:var(--mute);text-decoration:underline">Политика конфиденциальности и условия</a></p>
 </div>
 
 <main id="menu"></main>
@@ -528,7 +529,7 @@ const T = {
        nophone:'Телефон не указан', promo:'Акции', code:'Промокоды', profileTitle:'Профиль',
        orders:'Мои заказы', soon:'скоро', lang:'Язык', langName:'Русский',
        theme:'Тема', dark:'Тёмная', light:'Светлая', review:'Оставить отзыв',
-       hint:'Профиль, акции и история заказов появятся после подключения сервера',
+       hint:'Политика конфиденциальности и условия',
        cart:'Корзина', empty:'Корзина пуста', order:'Заказ', yours:'Ваш заказ',
        howGet:'Как получить', deliv:'Доставка', pick:'Самовывоз',
        whereFrom:'Откуда забрать', whereTo:'Куда доставить', pay:'Оплата',
@@ -548,7 +549,7 @@ const T = {
        nophone:'Telefon ko\'rsatilmagan', promo:'Aksiyalar', code:'Promokodlar',
        orders:'Mening buyurtmalarim', soon:'tez orada', lang:'Til', langName:'O\'zbekcha',
        theme:'Mavzu', dark:'Qorong\'i', light:'Yorug\'', review:'Fikr qoldirish',
-       hint:'Profil, aksiyalar va buyurtmalar tarixi server ulangach paydo bo\'ladi',
+       hint:'Maxfiylik siyosati va shartlar',
        cart:'Savat', empty:'Savat bo\'sh', order:'Buyurtma', yours:'Sizning buyurtmangiz',
        howGet:'Qanday olish', deliv:'Yetkazib berish', pick:'O\'zi olib ketish',
        whereFrom:'Qayerdan olish', whereTo:'Qayerga yetkazish', pay:'To\'lov',
@@ -568,7 +569,7 @@ const T = {
        nophone:'Phone not set', promo:'Offers', code:'Promo codes',
        orders:'My orders', soon:'soon', lang:'Language', langName:'English',
        theme:'Theme', dark:'Dark', light:'Light', review:'Leave a review',
-       hint:'Profile, offers and order history will appear once the server is connected',
+       hint:'Privacy policy and terms',
        cart:'Cart', empty:'Cart is empty', order:'Order', yours:'Your order',
        howGet:'How to get it', deliv:'Delivery', pick:'Pickup',
        whereFrom:'Pickup point', whereTo:'Delivery address', pay:'Payment',
@@ -1484,7 +1485,7 @@ function paintHome(){
   const logo = theme === 'dark' ? 'logo-dark.png' : 'logo-light.png';
   $('hLogo').src = logo; $('mLogo').src = logo;
   $('tReview').textContent = t().review;
-  $('hHint').textContent   = t().hint;
+  $('hHint').innerHTML = '<a href="privacy.html" target="_blank" style="color:var(--mute);text-decoration:underline">'+t().hint+'</a>';
   $('rvTitle').textContent = t().rvTitle;
   $('rvSub').textContent   = t().rvSub;
   $('rvText').placeholder  = t().rvPh;
