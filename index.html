@@ -535,7 +535,7 @@ const T = {
        whereFrom:'Откуда забрать', whereTo:'Куда доставить', pay:'Оплата',
        cash:'Наличными', card:'Картой', toCourier:'Курьеру при получении', online:'Онлайн-оплата',
        street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
-       geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении', noCourier:'уточним после заказа', needPhone:'Укажите номер телефона в профиле — без него курьер не сможет с вами связаться', dup:'Этот заказ уже принят — проверьте сообщения от бота', closed:'Сейчас мы закрыты. Заказы принимаем с 10:00 до 23:00',
+       geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении', noCourier:'уточним после заказа', needPhone:'Укажите номер телефона в профиле — без него курьер не сможет с вами связаться', dup:'Этот заказ уже принят — проверьте сообщения от бота', closed:'Сейчас мы закрыты. Заказы принимаем с 10:00 до 23:00', paused:'Сейчас мы временно не принимаем заказы — попробуйте немного позже', tooMany:'У вас уже есть 3 незавершённых заказа. Дождитесь их, пожалуйста', banned:'Оформление заказов недоступно. Свяжитесь с нами',
        free:'бесплатно', total:'Итого', submit:'Оформить заказ', add:'В корзину', sum:'сум',
        promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка', promoSaving:'Скидка по акции', bgHint:'Можете добавить', bgFree:'бесплатно',
        from:'от', min:n=>`Минимальная сумма заказа — ${n} сум`,
@@ -555,7 +555,7 @@ const T = {
        whereFrom:'Qayerdan olish', whereTo:'Qayerga yetkazish', pay:'To\'lov',
        cash:'Naqd pul', card:'Karta', toCourier:'Kuryerga olganda', online:'Onlayn to\'lov',
        street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
-       geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi', noCourier:'buyurtmadan keyin aniqlaymiz', needPhone:'Profilda telefon raqamingizni kiriting — usiz kuryer siz bilan bog\'lana olmaydi', dup:'Bu buyurtma allaqachon qabul qilingan — botdagi xabarlarni tekshiring', closed:'Hozir yopiqmiz. Buyurtmalar 10:00 dan 23:00 gacha qabul qilinadi',
+       geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi', noCourier:'buyurtmadan keyin aniqlaymiz', needPhone:'Profilda telefon raqamingizni kiriting — usiz kuryer siz bilan bog\'lana olmaydi', dup:'Bu buyurtma allaqachon qabul qilingan — botdagi xabarlarni tekshiring', closed:'Hozir yopiqmiz. Buyurtmalar 10:00 dan 23:00 gacha qabul qilinadi', paused:'Hozir vaqtincha buyurtma qabul qilmayapmiz — birozdan keyin urinib ko\'ring', tooMany:'Sizda allaqachon 3 ta yakunlanmagan buyurtma bor. Iltimos, ularni kuting', banned:'Buyurtma berish mumkin emas. Biz bilan bog\'laning',
        free:'bepul', total:'Jami', submit:'Buyurtma berish', add:'Savatga', sum:'so\'m',
        promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma', promoSaving:'Aksiya chegirmasi', bgHint:'Qo\'shishingiz mumkin', bgFree:'bepul',
        from:'dan', min:n=>`Minimal buyurtma summasi — ${n} so'm`,
@@ -575,7 +575,7 @@ const T = {
        whereFrom:'Pickup point', whereTo:'Delivery address', pay:'Payment',
        cash:'Cash', card:'Card', toCourier:'To the courier on delivery', online:'Online payment',
        street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
-       geo:'My location', goods:'Dishes', delivCost:'calculated at checkout', noCourier:'we will confirm after ordering', needPhone:'Add your phone number in your profile so the courier can reach you', dup:'This order has already been placed — check the bot messages', closed:'We are closed now. Orders are accepted from 10:00 to 23:00',
+       geo:'My location', goods:'Dishes', delivCost:'calculated at checkout', noCourier:'we will confirm after ordering', needPhone:'Add your phone number in your profile so the courier can reach you', dup:'This order has already been placed — check the bot messages', closed:'We are closed now. Orders are accepted from 10:00 to 23:00', paused:'We are temporarily not accepting orders — please try again a bit later', tooMany:'You already have 3 unfinished orders. Please wait for them', banned:'Ordering is unavailable. Please contact us',
        free:'free', total:'Total', submit:'Place order', add:'Add to cart', sum:'UZS',
        promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount', promoSaving:'Promo discount', bgHint:'You can add', bgFree:'free',
        from:'from', min:n=>`Minimum order is ${n} UZS`,
@@ -1415,7 +1415,7 @@ async function submitOrder(){
 
   } catch(e){
     tg?.HapticFeedback?.notificationOccurred('error');
-    alert(e.message === 'phone required' ? t().needPhone : e.message === 'duplicate order' ? t().dup : e.message === 'closed' ? t().closed : t().failed);
+    alert(e.message === 'phone required' ? t().needPhone : e.message === 'duplicate order' ? t().dup : e.message === 'closed' ? t().closed : e.message === 'paused' ? t().paused : e.message === 'too many orders' ? t().tooMany : e.message === 'banned' ? t().banned : t().failed);
     console.error(e);
   } finally {
     sending = false; btn.style.opacity = 1;
