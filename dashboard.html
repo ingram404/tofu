@@ -110,7 +110,10 @@
 </div>
 
 <script>
-const API="https://tofu-server-zq6z.onrender.com/api/stats?key=K7zdG7GKlhFLcFds3ium9g";
+// ключ не хранится в файле: откройте ссылку вида dashboard.html#key=ВАШ_КЛЮЧ
+// (часть после # не уходит на сервер GitHub)
+const API="https://tofu-server-zq6z.onrender.com/api/stats";
+const KEY=new URLSearchParams(location.hash.slice(1)).get("key")||"";
 const money=n=>Math.round(n).toLocaleString('ru-RU').replace(/,/g,' ');
 const fmtK=n=>n>=1000?Math.round(n/1000).toLocaleString('ru-RU')+'k':n;
 const PAY={cash:"Наличные",card_on_delivery:"Картой курьеру",payme:"Payme",click:"Click"};
@@ -125,7 +128,8 @@ async function load(){
     document.getElementById('state').innerHTML='<div class="spinner"></div>Загружаю данные…';
   }
   try{
-    const r=await fetch(API,{cache:"no-store"});
+    const r=await fetch(API,{cache:"no-store",headers:{"X-Stats-Key":KEY}});
+    if(r.status===403){document.getElementById('state').innerHTML='<div class="err">Нет доступа: откройте ссылку с #key=… в конце.</div>';btn.disabled=false;return;}
     if(!r.ok)throw new Error("HTTP "+r.status);
     render(await r.json());
     document.getElementById('state').style.display='none';
