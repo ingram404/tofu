@@ -536,7 +536,7 @@ const T = {
        howGet:'Как получить', deliv:'Доставка', pick:'Самовывоз',
        whereFrom:'Откуда забрать', whereTo:'Куда доставить', pay:'Оплата',
        cash:'Наличными', card:'Картой', toCourier:'Курьеру при получении', online:'Онлайн-оплата',
-       street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
+       pinMap:'Отметьте дом на карте: сдвиньте карту так, чтобы метка стояла на вашем доме, или выберите адрес из подсказок', noDeliv:'Не удалось рассчитать доставку для онлайн-оплаты. Выберите оплату курьеру или самовывоз', street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
        geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении', noCourier:'уточним после заказа', needPhone:'Нажмите «Поделиться номером» — без номера курьер не сможет с вами связаться', sharePhone:'📱 Поделиться номером', promoBad:'Промокод больше не действует — мы убрали его. Проверьте сумму и оформите заказ ещё раз', dup:'Этот заказ уже принят — проверьте сообщения от бота', soldTag:'Нет в наличии', soldOut:'Некоторые блюда только что закончились — мы убрали их из корзины. Проверьте заказ', closed:'Сейчас мы закрыты. Заказы принимаем с 10:00 до 22:00', paused:'Сейчас мы временно не принимаем заказы — попробуйте немного позже', tooMany:'У вас уже есть 3 незавершённых заказа. Дождитесь их, пожалуйста', banned:'Оформление заказов недоступно. Свяжитесь с нами',
        free:'бесплатно', total:'Итого', submit:'Оформить заказ', add:'В корзину', sum:'сум',
        promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка', promoSaving:'Скидка по акции', bgHint:'Можете добавить', bgFree:'бесплатно',
@@ -556,7 +556,7 @@ const T = {
        howGet:'Qanday olish', deliv:'Yetkazib berish', pick:'O\'zi olib ketish',
        whereFrom:'Qayerdan olish', whereTo:'Qayerga yetkazish', pay:'To\'lov',
        cash:'Naqd pul', card:'Karta', toCourier:'Kuryerga olganda', online:'Onlayn to\'lov',
-       street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
+       pinMap:'Uyingizni xaritada belgilang: belgi uyingiz ustida turishi uchun xaritani suring yoki takliflardan manzilni tanlang', noDeliv:'Onlayn to\'lov uchun yetkazib berish narxini hisoblab bo\'lmadi. Kuryerga to\'lov yoki olib ketishni tanlang', street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
        geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi', noCourier:'buyurtmadan keyin aniqlaymiz', needPhone:'«Raqamni ulashish» tugmasini bosing — raqamsiz kuryer siz bilan bog\'lana olmaydi', sharePhone:'📱 Raqamni ulashish', promoBad:'Promokod endi amal qilmaydi — uni olib tashladik. Summani tekshirib, buyurtmani qayta rasmiylashtiring', dup:'Bu buyurtma allaqachon qabul qilingan — botdagi xabarlarni tekshiring', soldTag:'Mavjud emas', soldOut:'Ba\'zi taomlar hozirgina tugadi — ularni savatdan olib tashladik. Buyurtmani tekshiring', closed:'Hozir yopiqmiz. Buyurtmalar 10:00 dan 22:00 gacha qabul qilinadi', paused:'Hozir vaqtincha buyurtma qabul qilmayapmiz — birozdan keyin urinib ko\'ring', tooMany:'Sizda allaqachon 3 ta yakunlanmagan buyurtma bor. Iltimos, ularni kuting', banned:'Buyurtma berish mumkin emas. Biz bilan bog\'laning',
        free:'bepul', total:'Jami', submit:'Buyurtma berish', add:'Savatga', sum:'so\'m',
        promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma', promoSaving:'Aksiya chegirmasi', bgHint:'Qo\'shishingiz mumkin', bgFree:'bepul',
@@ -576,7 +576,7 @@ const T = {
        howGet:'How to get it', deliv:'Delivery', pick:'Pickup',
        whereFrom:'Pickup point', whereTo:'Delivery address', pay:'Payment',
        cash:'Cash', card:'Card', toCourier:'To the courier on delivery', online:'Online payment',
-       street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
+       pinMap:'Mark your building on the map: move the map so the pin is on your building, or pick an address from the suggestions', noDeliv:'We could not calculate delivery for online payment. Choose paying the courier or pickup', street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
        geo:'My location', goods:'Dishes', delivCost:'calculated at checkout', noCourier:'we will confirm after ordering', needPhone:'Tap «Share phone number» so the courier can reach you', sharePhone:'📱 Share phone number', promoBad:'This promo code is no longer valid — we removed it. Check the total and place the order again', dup:'This order has already been placed — check the bot messages', soldTag:'Sold out', soldOut:'Some dishes just sold out — we removed them from your cart. Please check your order', closed:'We are closed now. Orders are accepted from 10:00 to 22:00', paused:'We are temporarily not accepting orders — please try again a bit later', tooMany:'You already have 3 unfinished orders. Please wait for them', banned:'Ordering is unavailable. Please contact us',
        free:'free', total:'Total', submit:'Place order', add:'Add to cart', sum:'UZS',
        promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount', promoSaving:'Promo discount', bgHint:'You can add', bgFree:'free',
@@ -1025,8 +1025,11 @@ function initMap(){
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution:'© OpenStreetMap', maxZoom:19
   }).addTo(map);
-  map.on('moveend', () => { if (suppressMove) return; coords = map.getCenter(); askAddress(); quoteSoon(); });
-  coords = map.getCenter();
+  // только жесты клиента: 'moveend' срабатывает и при изменении размера окна
+  // (открылась клавиатура) — тогда точкой молча стал бы центр карты
+  map.on('dragend zoomend', () => { if (suppressMove) return; coords = map.getCenter(); askAddress(); quoteSoon(); });
+  // точку ставит только сам клиент (сдвинул карту, выбрал адрес, «моё местоположение»):
+  // иначе доставка считалась бы от центра Ташкента
 }
 let addrTimer = null, addrTyped = false;
 
@@ -1384,8 +1387,8 @@ async function submitOrder(){
   if (goods < MIN_ORDER) return;
   if (!myProfile.phone){ requestPhone(submitOrder); return; }
 
-  if (mode === 'delivery' && !coords && !$('addr').value.trim()){
-    alert(t().street); $('addr').focus(); return;
+  if (mode === 'delivery' && !coords){
+    alert(t().pinMap); return;
   }
 
   const order = {
@@ -1441,7 +1444,7 @@ async function submitOrder(){
     tg?.HapticFeedback?.notificationOccurred('error');
     if (/^item \d+ unavailable$/.test(e.message)){ await loadStoplist(); alert(t().soldOut); return; }
     if (e.message === 'promo invalid'){ promoCode = ''; promoDiscount = 0; await refreshQuote(); paintSum(); alert(t().promoBad); return; }
-    alert(e.message === 'phone required' ? t().needPhone : e.message === 'duplicate order' ? t().dup : e.message === 'closed' ? t().closed : e.message === 'paused' ? t().paused : e.message === 'too many orders' ? t().tooMany : e.message === 'banned' ? t().banned : t().failed);
+    alert(e.message === 'no location' ? t().pinMap : e.message === 'delivery not calculated' ? t().noDeliv : e.message === 'phone required' ? t().needPhone : e.message === 'duplicate order' ? t().dup : e.message === 'closed' ? t().closed : e.message === 'paused' ? t().paused : e.message === 'too many orders' ? t().tooMany : e.message === 'banned' ? t().banned : t().failed);
     console.error(e);
   } finally {
     sending = false; btn.style.opacity = 1;
