@@ -387,6 +387,10 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
   </div>
 
   <button class="go" id="hGo" onclick="toMenu()">Открыть меню</button>
+  <div id="hLoyal" hidden style="margin-top:10px;padding:10px 12px;border:1px dashed #8bd450;border-radius:12px;color:#8bd450;font-size:13px;line-height:1.4;text-align:center">
+    <div id="hLoyalText"></div>
+    <button id="hQrBtn" onclick="openQr()" style="margin-top:8px;background:#8bd450;color:#141210;border:0;border-radius:10px;padding:8px 14px;font:600 13px Inter,sans-serif;cursor:pointer"></button>
+  </div>
 
   <div class="gap"></div>
 
@@ -536,7 +540,7 @@ const T = {
        pinMap:'Отметьте дом на карте: сдвиньте карту так, чтобы метка стояла на вашем доме, или выберите адрес из подсказок', noDeliv:'Не удалось рассчитать доставку для онлайн-оплаты. Выберите оплату курьеру или самовывоз', street:'Улица и дом', apt:'Квартира', entr:'Подъезд', note:'Комментарий курьеру',
        geo:'Моё местоположение', goods:'Блюда', delivCost:'рассчитается при оформлении', noCourier:'курьеру наличными', needPhone:'Нажмите «Поделиться номером» — без номера курьер не сможет с вами связаться', sharePhone:'📱 Поделиться номером', promoBad:'Промокод больше не действует — мы убрали его. Проверьте сумму и оформите заказ ещё раз', dup:'Этот заказ уже принят — проверьте сообщения от бота', soldTag:'Нет в наличии', soldOut:'Некоторые блюда только что закончились — мы убрали их из корзины. Проверьте заказ', closed:'Сейчас мы закрыты. Заказы принимаем с 10:00 до 22:00', paused:'Сейчас мы временно не принимаем заказы — попробуйте немного позже', tooMany:'У вас уже есть 3 незавершённых заказа. Дождитесь их, пожалуйста', banned:'Оформление заказов недоступно. Свяжитесь с нами',
        free:'бесплатно', total:'Итого', submit:'Оформить заказ', add:'В корзину', sum:'сум',
-       promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка', promoSaving:'Скидка по акции', bgHint:'Можете добавить', bgFree:'бесплатно',
+       loyalWhat:(l,g)=>l.type==='percent'?`скидка ${l.value}%`:l.type==='fixed'?`скидка ${money(l.value)} сум`:`${g} в подарок`, loyalHome:(l,w)=>l.left===0?`🎉 Ваш следующий заказ наградной — ${w}!`:`🎁 Каждый ${l.n}-й заказ — ${w}. Ваш наградной заказ — через ${l.left}`, loyalRow:p=>`${p}-й заказ`, loyalGift:'подарок', qrBtn:'Мой QR-код', qrHint:'Покупаете на точке TOFU? Покажите этот код кассиру — покупка пойдёт в счёт акции. Код обновляется каждые несколько минут, скриншот не подойдёт.', promoTitle:'Промокод', promoApply:'Применить', promoOk:'Промокод применён', discount:'Скидка', promoSaving:'Скидка по акции', bgHint:'Можете добавить', bgFree:'бесплатно',
        from:'от', min:n=>`Минимальная сумма заказа — ${n} сум`,
        rvTitle:'Оставить отзыв', rvSub:'Оцените и напишите пару слов — нам это помогает',
        rvPh:'Что понравилось, что нет', rvSend:'Отправить',
@@ -556,7 +560,7 @@ const T = {
        pinMap:'Uyingizni xaritada belgilang: belgi uyingiz ustida turishi uchun xaritani suring yoki takliflardan manzilni tanlang', noDeliv:'Onlayn to\'lov uchun yetkazib berish narxini hisoblab bo\'lmadi. Kuryerga to\'lov yoki olib ketishni tanlang', street:'Ko\'cha va uy', apt:'Kvartira', entr:'Podez', note:'Kuryerga izoh',
        geo:'Mening joylashuvim', goods:'Taomlar', delivCost:'rasmiylashtirishda hisoblanadi', noCourier:'kuryerga naqd', needPhone:'«Raqamni ulashish» tugmasini bosing — raqamsiz kuryer siz bilan bog\'lana olmaydi', sharePhone:'📱 Raqamni ulashish', promoBad:'Promokod endi amal qilmaydi — uni olib tashladik. Summani tekshirib, buyurtmani qayta rasmiylashtiring', dup:'Bu buyurtma allaqachon qabul qilingan — botdagi xabarlarni tekshiring', soldTag:'Mavjud emas', soldOut:'Ba\'zi taomlar hozirgina tugadi — ularni savatdan olib tashladik. Buyurtmani tekshiring', closed:'Hozir yopiqmiz. Buyurtmalar 10:00 dan 22:00 gacha qabul qilinadi', paused:'Hozir vaqtincha buyurtma qabul qilmayapmiz — birozdan keyin urinib ko\'ring', tooMany:'Sizda allaqachon 3 ta yakunlanmagan buyurtma bor. Iltimos, ularni kuting', banned:'Buyurtma berish mumkin emas. Biz bilan bog\'laning',
        free:'bepul', total:'Jami', submit:'Buyurtma berish', add:'Savatga', sum:'so\'m',
-       promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma', promoSaving:'Aksiya chegirmasi', bgHint:'Qo\'shishingiz mumkin', bgFree:'bepul',
+       loyalWhat:(l,g)=>l.type==='percent'?`${l.value}% chegirma`:l.type==='fixed'?`${money(l.value)} so'm chegirma`:`${g} sovg'a`, loyalHome:(l,w)=>l.left===0?`🎉 Keyingi buyurtmangiz sovg'ali — ${w}!`:`🎁 Har ${l.n}-buyurtmada — ${w}. Sovg'ali buyurtmangizgacha: ${l.left}`, loyalRow:p=>`${p}-buyurtma`, loyalGift:'sovg\'a', qrBtn:'Mening QR-kodim', qrHint:'TOFU filialida xarid qilyapsizmi? Ushbu kodni kassirga ko\'rsating — xarid aksiya hisobiga o\'tadi. Kod bir necha daqiqada yangilanadi, skrinshot yaramaydi.', promoTitle:'Promokod', promoApply:'Qo\'llash', promoOk:'Promokod qo\'llandi', discount:'Chegirma', promoSaving:'Aksiya chegirmasi', bgHint:'Qo\'shishingiz mumkin', bgFree:'bepul',
        from:'dan', min:n=>`Minimal buyurtma summasi — ${n} so'm`,
        rvTitle:'Fikr qoldirish', rvSub:'Baholang va bir necha so\'z yozing',
        rvPh:'Nima yoqdi, nima yoqmadi', rvSend:'Yuborish',
@@ -576,7 +580,7 @@ const T = {
        pinMap:'Mark your building on the map: move the map so the pin is on your building, or pick an address from the suggestions', noDeliv:'We could not calculate delivery for online payment. Choose paying the courier or pickup', street:'Street and building', apt:'Apartment', entr:'Entrance', note:'Note for the courier',
        geo:'My location', goods:'Dishes', delivCost:'calculated at checkout', noCourier:'cash to the courier', needPhone:'Tap «Share phone number» so the courier can reach you', sharePhone:'📱 Share phone number', promoBad:'This promo code is no longer valid — we removed it. Check the total and place the order again', dup:'This order has already been placed — check the bot messages', soldTag:'Sold out', soldOut:'Some dishes just sold out — we removed them from your cart. Please check your order', closed:'We are closed now. Orders are accepted from 10:00 to 22:00', paused:'We are temporarily not accepting orders — please try again a bit later', tooMany:'You already have 3 unfinished orders. Please wait for them', banned:'Ordering is unavailable. Please contact us',
        free:'free', total:'Total', submit:'Place order', add:'Add to cart', sum:'UZS',
-       promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount', promoSaving:'Promo discount', bgHint:'You can add', bgFree:'free',
+       loyalWhat:(l,g)=>l.type==='percent'?`${l.value}% off`:l.type==='fixed'?`${money(l.value)} UZS off`:`free ${g}`, loyalHome:(l,w)=>l.left===0?`🎉 Your next order is a reward order — ${w}!`:`🎁 Every ${l.n}th order: ${w}. Orders until yours: ${l.left}`, loyalRow:p=>`Order #${p}`, loyalGift:'gift', qrBtn:'My QR code', qrHint:'Buying at a TOFU location? Show this code to the cashier and the purchase will count towards the offer. The code refreshes every few minutes, a screenshot will not work.', promoTitle:'Promo code', promoApply:'Apply', promoOk:'Promo applied', discount:'Discount', promoSaving:'Promo discount', bgHint:'You can add', bgFree:'free',
        from:'from', min:n=>`Minimum order is ${n} UZS`,
        rvTitle:'Leave a review', rvSub:'Rate us and write a few words',
        rvPh:'What you liked, what you did not', rvSend:'Send',
@@ -790,8 +794,49 @@ function bump(key, name, price, delta, img, ids){
   const c = cart[key] || (cart[key] = {name, price, qty:0, img, ...ids});
   c.qty += delta;
   if (c.qty <= 0) delete cart[key];
-  redraw(); paintBar();
+  redraw(); paintBar(); saveCartSoon();
   tg?.HapticFeedback?.impactOccurred('light');
+}
+
+/* ---------- корзина на сервере: восстановление и напоминание ---------- */
+let cartTimer = null;
+function saveCartSoon(){
+  if (!tg?.initData) return;
+  clearTimeout(cartTimer);
+  cartTimer = setTimeout(saveCart, 2000);
+}
+async function saveCart(){
+  const items = Object.values(cart).map(c => ({
+    item_id: c.item_id, variant_id: c.variant_id, qty: c.qty, addon_id: c.addon_id || null
+  }));
+  try {
+    await fetch(API + '/api/cart', {
+      method:'POST', headers:{'Content-Type':'application/json','X-Init-Data': tg.initData},
+      body: JSON.stringify({items})
+    });
+  } catch(e){ /* не получилось — корзина всё равно на экране */ }
+}
+function restoreLine(l){
+  const it = MENU.items.find(x => x.id === l.item_id);
+  if (!it || soldOut.has(it.id)) return;
+  const v = l.variant_id ? it.variants.find(x => x.id === l.variant_id) : null;
+  const ad = l.addon_id ? (MENU.addons || []).find(a => a.id === l.addon_id) : null;
+  if ((l.variant_id && !v) || (l.addon_id && !ad)) return;   // блюдо с тех пор изменилось
+  const key = (v ? 'v'+v.id : 'i'+it.id) + (ad ? 'a'+ad.id : '');
+  const name = (v ? `${nm(it)} (${vl(v)})` : nm(it)) + (ad ? ` + ${adName(ad)}` : '');
+  cart[key] = {name, price: (v ? v.price : it.price) + (ad ? ad.price : 0), qty: l.qty, img: it.id,
+               item_id: it.id, variant_id: v ? v.id : null, ...(ad ? {addon_id: ad.id} : {})};
+}
+async function loadCart(){
+  if (!tg?.initData) return;
+  try {
+    const r = await fetch(API + '/api/cart', {headers:{'X-Init-Data': tg.initData}});
+    if (!r.ok) return;
+    const items = (await r.json()).items || [];
+    if (Object.keys(cart).length) return;        // клиент уже начал собирать новую
+    items.forEach(restoreLine);
+    redraw(); paintBar();
+  } catch(e){}
 }
 
 function redraw(){
@@ -971,7 +1016,7 @@ function step(key, d){
   if (!c) return;
   c.qty += d;
   if (c.qty <= 0) delete cart[key];
-  redraw();
+  redraw(); saveCartSoon();
   if (!Object.keys(cart).length){ closeCart(); return; }
   renderLines(); paintSum();
 }
@@ -1249,7 +1294,10 @@ function paintSum(){
   const list = Object.values(cart);
   const rawGoods = list.reduce((s,c) => s + c.qty * c.price, 0);
   const goods = (quoteData && quoteData.goods != null) ? quoteData.goods : rawGoods;
-  const promoDisc = (quoteData && quoteData.promo_discount) ? quoteData.promo_discount : promoDiscount;
+  const loy = quoteData && quoteData.loyalty;           // наградной заказ (акция «каждый N-й»)
+  const loyDisc = loy ? loy.discount : 0;
+  // на наградном заказе со скидкой промокод не действует — так считает сервер
+  const promoDisc = loyDisc ? 0 : (quoteData && quoteData.promo_discount) ? quoteData.promo_discount : promoDiscount;
   const promoSaving = rawGoods - goods;  // сколько сэкономлено акциями
   // цена доставки от сервера (Яндекс): число | 0 (самовывоз) | null (ещё считается/нет адреса)
   let fee;
@@ -1288,7 +1336,9 @@ function paintSum(){
     rows.push(`<div><span class="mut">${t().pick}</span><span>${t().free}</span></div>`);
   if (promoDisc > 0)
     rows.push(`<div><span class="mut">${t().discount}</span><span style="color:#8bd450">−${money(promoDisc)} ${t().sum}</span></div>`);
-  const finalTotal = Math.max(0, goods + (fee||0) - promoDisc);
+  if (loy)
+    rows.push(`<div><span style="color:#8bd450">🎉 ${t().loyalRow(loy.position)}</span><span style="color:#8bd450">${loyDisc ? '−' + money(loyDisc) + ' ' + t().sum : t().loyalGift + ': ' + loyalGiftName(loy)}</span></div>`);
+  const finalTotal = Math.max(0, goods + (fee||0) - promoDisc - loyDisc);
   rows.push(`<div class="tot"><span>${t().total}</span><b>${money(finalTotal)} ${t().sum}</b></div>`);
   document.getElementById('sum').innerHTML = rows.join('');
   document.getElementById('sumTotal').textContent = money(finalTotal) + ' ' + t().sum;
@@ -1431,7 +1481,7 @@ async function submitOrder(){
 
     const res = await r.json();
     for (const k in cart) delete cart[k];
-    redraw(); closeCart();
+    redraw(); closeCart(); loadMe();
     if (res.pay_url){
       // онлайн-оплата: отправляем клиента на защищённую страницу платёжки
       if (tg?.openLink) tg.openLink(res.pay_url);
@@ -1455,7 +1505,56 @@ async function submitOrder(){
 }
 
 /* профиль с сервера — телефон и язык */
-let myProfile = {name:'', phone:''};
+let myProfile = {name:'', phone:'', loyalty:null};
+function loyalGiftName(l){
+  const it = MENU.items.find(x => x.id === l.value);
+  return it ? nm(it) : (l.gift_name || '');
+}
+function paintLoyal(){
+  const l = myProfile.loyalty, box = $('hLoyal');
+  box.hidden = !l;
+  if (l){
+    $('hLoyalText').textContent = t().loyalHome(l, t().loyalWhat(l, loyalGiftName(l)));
+    $('hQrBtn').textContent = t().qrBtn;
+  }
+}
+
+/* QR-код клиента: кассир на точке сканирует его, и покупка идёт в счёт акции */
+let qrTimer = null;
+function loadQrLib(){
+  if (window.QRCode) return Promise.resolve();
+  return new Promise((ok, fail) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    sc.onload = ok; sc.onerror = fail;
+    document.head.append(sc);
+  });
+}
+async function openQr(){
+  $('qrTitle').textContent = t().qrBtn;
+  $('qrHint').textContent = t().qrHint;
+  const box = $('qrBox');
+  box.replaceChildren();
+  $('qrOverlay').style.display = 'block';
+  try {
+    const [r] = await Promise.all([
+      fetch(API + '/api/visit-code', {headers:{'X-Init-Data': tg?.initData || ''}}), loadQrLib()]);
+    if (!r.ok) throw new Error('http');
+    const code = await r.json();
+    box.replaceChildren();
+    new QRCode(box, {text: code.link, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M});
+    clearTimeout(qrTimer);
+    // код живёт несколько минут — пока окно открыто, выдаём свежий
+    qrTimer = setTimeout(() => { if ($('qrOverlay').style.display === 'block') openQr(); }, (code.ttl - 30) * 1000);
+  } catch(e){
+    box.textContent = t().failed;
+  }
+}
+function closeQr(){
+  clearTimeout(qrTimer);
+  $('qrOverlay').style.display = 'none';
+  loadMe();          // кассир мог только что засчитать покупку — обновляем счётчик
+}
 async function loadMe(){
   if (!tg?.initData) return;
   try {
@@ -1464,6 +1563,8 @@ async function loadMe(){
     const me = await r.json();
     myProfile.name = me.name || '';
     myProfile.phone = me.phone || '';
+    myProfile.loyalty = me.loyalty || null;
+    paintLoyal();
     if (me.name) $('hName').textContent = me.name;
     if (me.phone) $('hMeta').textContent = me.phone;
   } catch(e){ /* сервер спит или недоступен — не мешаем заказывать */ }
@@ -1540,6 +1641,7 @@ function paintHome(){
     + ' · <span onclick="openOffer()" style="color:var(--mute);text-decoration:underline;cursor:pointer">'+t().offer+'</span>';
   $('rvTitle').textContent = t().rvTitle;
   $('rvSub').textContent   = t().rvSub;
+  paintLoyal();
   $('rvText').placeholder  = t().rvPh;
   $('rvSend').textContent  = t().rvSend;
   document.querySelector('.foot').textContent = t().disclaimer;
@@ -1810,7 +1912,7 @@ function paintStatic(){
   $('note').placeholder = t().note;
 }
 
-paintHome(); paintStatic(); loadMe(); loadPayMethods(); initAddrSuggest();
+paintHome(); paintStatic(); loadMe(); loadPayMethods(); initAddrSuggest(); loadCart();
 document.body.style.overflow = 'hidden';   // стартовый экран открыт
 
 /* подсветка активной категории при скролле */
@@ -1842,6 +1944,18 @@ document.querySelectorAll('section').forEach(s => io.observe(s));
       <button onclick="closePromos()" style="background:none;border:0;color:#8a857c;font-size:24px;line-height:1;cursor:pointer">×</button>
     </div>
     <div id="promosList" style="overflow-y:auto;padding:12px 14px 24px;flex:1"></div>
+  </div>
+</div>
+<div id="qrOverlay" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6)">
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#141210;border-radius:18px 18px 0 0;padding:0 0 24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #262320">
+      <b style="font-size:17px;color:#fff" id="qrTitle"></b>
+      <button onclick="closeQr()" style="background:none;border:0;color:#8a857c;font-size:24px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:18px;text-align:center">
+      <div id="qrBox" style="display:inline-block;background:#fff;padding:12px;border-radius:12px;min-width:220px;min-height:220px;color:#141210"></div>
+      <p id="qrHint" style="color:#8a857c;font-size:13px;line-height:1.5;margin:14px 0 0"></p>
+    </div>
   </div>
 </div>
 <div id="promoOverlay" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6)">
