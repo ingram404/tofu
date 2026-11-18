@@ -477,10 +477,7 @@ html[data-theme="light"] .leaflet-control-attribution a{color:rgba(0,0,0,.35)!im
 
   <div class="block">
     <h3 data-i="pay">Оплата</h3>
-    <button class="spot" aria-pressed="true" onclick="setPay('cash')" id="pCash">
-      <span><b data-i="cash">Наличными</b><span data-i="toCourier">Курьеру при получении</span></span><i></i>
-    </button>
-    <button class="spot" aria-pressed="false" onclick="setPay('click')" id="pClick" hidden>
+    <button class="spot" aria-pressed="true" onclick="setPay('click')" id="pClick" hidden>
       <span><b>Click</b><span data-i="online">Онлайн-оплата</span></span><i></i>
     </button>
     <button class="spot" aria-pressed="false" onclick="setPay('payme')" id="pPayme" hidden>
@@ -964,7 +961,7 @@ const SPOTS = [
   {name:"ТРЦ Compass", lat:41.2390226, lng:69.3286662},
   {name:"ТРЦ Riviera", lat:41.3395167, lng:69.2547119},
 ];
-let mode = 'delivery', spot = 0, pay = 'cash', map = null, coords = null, suppressMove = false;
+let mode = 'delivery', spot = 0, pay = 'click', map = null, coords = null, suppressMove = false;
 let promoCode = '', promoDiscount = 0;
 
 function openCart(){
@@ -1038,7 +1035,7 @@ function setSpot(i){
 }
 function setPay(p){
   pay = p;
-  const ids = {cash:'pCash', click:'pClick', payme:'pPayme'};
+  const ids = {click:'pClick', payme:'pPayme'};
   for (const k in ids){
     const el = document.getElementById(ids[k]);
     if (el) el.setAttribute('aria-pressed', p === k);
@@ -1062,6 +1059,7 @@ async function loadPayMethods(){
     const a = await r.json();
     if (a.click) document.getElementById('pClick').hidden = false;
     if (a.payme) document.getElementById('pPayme').hidden = false;
+    if (!a.click && a.payme) setPay('payme');
   } catch(e){}
 }
 
@@ -1449,7 +1447,7 @@ async function submitOrder(){
       item_id: c.item_id, variant_id: c.variant_id, qty: c.qty, addon_id: c.addon_id || null
     })),
     mode,
-    pay: {cash:'cash', click:'click', payme:'payme'}[pay],
+    pay,
     spot: mode === 'pickup' ? ['compass','riviera'][spot] : null,
     address: mode === 'delivery' ? {
       street: $('addr').value.trim(),
